@@ -1,0 +1,462 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Futuristic Cyberpunk Robotics Theme */
+  --background: oklch(0.12 0.015 265);
+  --foreground: oklch(0.98 0.01 200);
+  --card: oklch(0.15 0.02 260);
+  --card-foreground: oklch(0.95 0.01 200);
+  --popover: oklch(0.14 0.02 265);
+  --popover-foreground: oklch(0.98 0.01 200);
+
+  /* Bright cyan accent for robotics/AI theme */
+  --primary: oklch(0.75 0.19 195);
+  --primary-foreground: oklch(0.12 0.015 265);
+
+  /* Metallic silver for secondary elements */
+  --secondary: oklch(0.35 0.01 260);
+  --secondary-foreground: oklch(0.95 0.01 200);
+
+  --muted: oklch(0.25 0.02 260);
+  --muted-foreground: oklch(0.6 0.01 200);
+
+  /* Electric blue accent */
+  --accent: oklch(0.55 0.2 250);
+  --accent-foreground: oklch(0.98 0.01 200);
+
+  --destructive: oklch(0.6 0.24 20);
+  --destructive-foreground: oklch(0.98 0.01 200);
+
+  --border: oklch(0.25 0.03 260);
+  --input: oklch(0.2 0.02 260);
+  --ring: oklch(0.75 0.19 195);
+
+  /* Chart colors for metrics - neon/cyberpunk themed */
+  --chart-1: oklch(0.75 0.19 195); /* Cyan */
+  --chart-2: oklch(0.7 0.22 140); /* Green */
+  --chart-3: oklch(0.65 0.2 300); /* Purple */
+  --chart-4: oklch(0.75 0.18 85); /* Yellow */
+  --chart-5: oklch(0.65 0.24 25); /* Orange */
+
+  --radius: 0.5rem;
+
+  --sidebar: oklch(0.14 0.02 265);
+  --sidebar-foreground: oklch(0.95 0.01 200);
+  --sidebar-primary: oklch(0.75 0.19 195);
+  --sidebar-primary-foreground: oklch(0.12 0.015 265);
+  --sidebar-accent: oklch(0.25 0.02 260);
+  --sidebar-accent-foreground: oklch(0.95 0.01 200);
+  --sidebar-border: oklch(0.25 0.03 260);
+  --sidebar-ring: oklch(0.75 0.19 195);
+}
+
+.dark {
+  /* Same theme for dark mode with slight adjustments */
+  --background: oklch(0.1 0.02 265);
+  --foreground: oklch(0.98 0.01 200);
+  --card: oklch(0.13 0.025 260);
+  --card-foreground: oklch(0.98 0.01 200);
+  --popover: oklch(0.12 0.025 265);
+  --popover-foreground: oklch(0.98 0.01 200);
+
+  --primary: rgb(194, 199, 199);
+  --primary-foreground: oklch(0.1 0.02 265);
+
+  --secondary: oklch(0.3 0.015 260);
+  --secondary-foreground: oklch(0.98 0.01 200);
+
+  --muted: oklch(0.22 0.025 260);
+  --muted-foreground: oklch(0.65 0.01 200);
+
+  --accent: oklch(0.55 0.2 250);
+  --accent-foreground: oklch(0.98 0.01 200);
+
+  --destructive: oklch(0.6 0.24 20);
+  --destructive-foreground: oklch(0.98 0.01 200);
+
+  --border: oklch(0.25 0.03 260);
+  --input: oklch(0.18 0.025 260);
+  --ring: rgb(21, 90, 90);
+
+  --chart-1: oklch(0.75 0.19 195);
+  --chart-2: oklch(0.7 0.22 140);
+  --chart-3: oklch(0.65 0.2 300);
+  --chart-4: oklch(0.75 0.18 85);
+  --chart-5: oklch(0.65 0.24 25);
+
+  --sidebar: oklch(0.12 0.025 265);
+  --sidebar-foreground: oklch(0.98 0.01 200);
+  --sidebar-primary: rgb(68, 109, 109);
+  --sidebar-primary-foreground: oklch(0.1 0.02 265);
+  --sidebar-accent: oklch(0.22 0.025 260);
+  --sidebar-accent-foreground: oklch(0.98 0.01 200);
+  --sidebar-border: oklch(0.25 0.03 260);
+  --sidebar-ring: rgb(22, 20, 20);
+}
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom cyberpunk glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.glow-cyan-strong {
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), 0 0 60px rgba(0, 255, 255, 0.3);
+}
+
+.metallic-border {
+  border: 1px solid;
+  border-image: linear-gradient(135deg, oklch(0.75 0.19 195), oklch(0.35 0.01 260), oklch(0.55 0.2 250)) 1;
+}
+
+/* Animated grid background */
+.grid-bg {
+  background-image: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridScroll 20s linear infinite;
+}
+
+@keyframes gridScroll {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 50px 50px;
+  }
+}
+
+/* Added infinite scroll animation for ticker */
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-left {
+  animation: scrollLeft 30s linear infinite;
+}
+
+.animate-scroll-left:hover {
+  animation-play-state: paused;
+}
+
+/* Adding advanced futuristic design elements */
+
+/* Metallic button with darker gradient overlay */
+.btn-metallic {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    oklch(0.18 0.01 260) 0%,
+    oklch(0.25 0.02 250) 25%,
+    oklch(0.3 0.02 260) 50%,
+    oklch(0.25 0.02 250) 75%,
+    oklch(0.18 0.01 260) 100%
+  );
+  border: 1px solid oklch(0.35 0.05 240);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(0, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-metallic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(0, 255, 255, 0.08) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.btn-metallic:hover {
+  background: linear-gradient(
+    135deg,
+    oklch(0.2 0.02 260) 0%,
+    oklch(0.28 0.03 250) 25%,
+    oklch(0.32 0.03 260) 50%,
+    oklch(0.28 0.03 250) 75%,
+    oklch(0.2 0.02 260) 100%
+  );
+  border-color: oklch(0.75 0.19 195);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.6), 0 0 20px
+    rgba(0, 255, 255, 0.3), 0 0 40px rgba(0, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-metallic:hover::before {
+  opacity: 1;
+}
+
+.btn-metallic:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Primary metallic button variant */
+.btn-metallic-primary {
+  background: linear-gradient(
+    135deg,
+    oklch(0.15 0.01 260) 0%,
+    oklch(0.22 0.03 250) 25%,
+    oklch(0.25 0.04 240) 50%,
+    oklch(0.22 0.03 250) 75%,
+    oklch(0.15 0.01 260) 100%
+  );
+  border: 1px solid oklch(0.75 0.19 195);
+  color: oklch(0.95 0.01 200);
+  box-shadow: inset 0 1px 0 rgba(0, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 255, 255, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.btn-metallic-primary:hover {
+  background: linear-gradient(
+    135deg,
+    oklch(0.18 0.02 260) 0%,
+    oklch(0.25 0.04 250) 25%,
+    oklch(0.28 0.05 240) 50%,
+    oklch(0.25 0.04 250) 75%,
+    oklch(0.18 0.02 260) 100%
+  );
+  border-color: oklch(0.85 0.2 195);
+  box-shadow: inset 0 1px 0 rgba(0, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 0 25px rgba(0, 255, 255, 0.5),
+    0 0 50px rgba(0, 255, 255, 0.3);
+}
+
+/* Added metallic card style with darker background */
+.card-metallic {
+  background: linear-gradient(135deg, oklch(0.14 0.02 265) 0%, oklch(0.17 0.025 260) 50%, oklch(0.14 0.02 265) 100%);
+  border: 1px solid oklch(0.25 0.03 260);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.card-metallic:hover {
+  border-color: oklch(0.75 0.19 195);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(0, 255, 255, 0.2), 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Holographic shimmer effect */
+.holographic {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    oklch(0.2 0.01 260) 0%,
+    oklch(0.28 0.02 250) 25%,
+    oklch(0.35 0.02 255) 50%,
+    oklch(0.28 0.02 250) 75%,
+    oklch(0.2 0.01 260) 100%
+  );
+  background-size: 200% 200%;
+  animation: holoShift 3s ease infinite;
+}
+
+@keyframes holoShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Scanline effect for futuristic displays */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.05) 50%, transparent 100%);
+  animation: scanMove 8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes scanMove {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Digital corner accents */
+.digital-corners {
+  position: relative;
+}
+
+.digital-corners::before,
+.digital-corners::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid oklch(0.75 0.19 195);
+}
+
+.digital-corners::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.digital-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Neon glow text */
+.neon-text {
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.6), 0 0 30px rgba(0, 255, 255, 0.4);
+}
+
+/* Circuit board pattern background */
+.circuit-bg {
+  background-image: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(100, 150, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(150, 100, 255, 0.03) 0%, transparent 50%);
+}
+
+/* Animated border glow */
+.border-glow-animated {
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.border-glow-animated::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(
+    135deg,
+    oklch(0.25 0.02 260),
+    oklch(0.3 0.02 255),
+    oklch(0.75 0.19 195),
+    oklch(0.3 0.02 255),
+    oklch(0.25 0.02 260)
+  );
+  background-size: 300% 300%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: borderPulse 3s ease infinite;
+  opacity: 0.5;
+}
+
+@keyframes borderPulse {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    opacity: 0.5;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.8;
+  }
+}
+
+/* Glass morphism effect */
+.glass-morph {
+  background: rgba(20, 25, 40, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+/* Tech panel divider */
+.tech-divider {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, oklch(0.75 0.19 195) 50%, transparent 100%);
+}
+
+.tech-divider::before,
+.tech-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: oklch(0.75 0.19 195);
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.tech-divider::before {
+  left: 0;
+}
+.tech-divider::after {
+  right: 0;
+}
