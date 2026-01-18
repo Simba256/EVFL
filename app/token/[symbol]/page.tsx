@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Header } from "@/components/header"
 import { TrendingTicker } from "@/components/trending-ticker"
+import { TokenTradingSection } from "@/components/token-trading-section"
 import { ArrowLeft, TrendingUp, TrendingDown, Users, Activity, DollarSign, BarChart3, Clock, Award } from "lucide-react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
@@ -137,12 +138,12 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
             </div>
 
             <div className="flex gap-3">
-              <button className="px-6 py-3 btn-metallic-primary text-primary-foreground font-bold rounded-lg">
+              <a href="#trade" className="px-6 py-3 btn-metallic-primary text-primary-foreground font-bold rounded-lg">
                 Buy {token.symbol}
-              </button>
-              <button className="px-6 py-3 btn-metallic text-foreground font-bold rounded-lg">
+              </a>
+              <a href="#trade" className="px-6 py-3 btn-metallic text-foreground font-bold rounded-lg">
                 Sell {token.symbol}
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -216,6 +217,14 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
 
           {/* Stats & Info Sidebar */}
           <div className="space-y-6">
+            {/* Trading Panel */}
+            <div id="trade">
+              <TokenTradingSection
+                tokenSymbol={token.symbol}
+                tokenName={token.name}
+              />
+            </div>
+
             {/* Token Stats */}
             <Card className="border-glow-animated glass-morph p-6 scanlines digital-corners">
               <h2

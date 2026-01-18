@@ -5,6 +5,7 @@ import { TokenGrid } from "@/components/token-grid"
 import { FilterTabs } from "@/components/filter-tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getTokens } from "@/lib/data/tokens"
+import { getOnChainTokens } from "@/lib/data/onchain-tokens"
 import Link from "next/link"
 
 function TokenGridSkeleton() {
@@ -18,8 +19,25 @@ function TokenGridSkeleton() {
 }
 
 async function TokenGridWrapper() {
-  const tokens = await getTokens()
-  return <TokenGrid tokens={tokens} />
+  // Fetch both on-chain and mock tokens
+  const [onChainTokens, mockTokens] = await Promise.all([
+    getOnChainTokens(),
+    getTokens(),
+  ])
+
+  // On-chain tokens first, then mock tokens
+  const allTokens = [...onChainTokens, ...mockTokens]
+
+  return (
+    <>
+      {onChainTokens.length > 0 && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {onChainTokens.length} on-chain token{onChainTokens.length !== 1 ? 's' : ''} and {mockTokens.length} demo tokens
+        </div>
+      )}
+      <TokenGrid tokens={allTokens} />
+    </>
+  )
 }
 
 export default function HomePage() {

@@ -1,4 +1,4 @@
-import { Users, TrendingUp, TrendingDown, Award } from "lucide-react"
+import { Users, TrendingUp, TrendingDown, Award, LinkIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { Token } from "@/types"
 import Image from "next/image"
@@ -9,18 +9,37 @@ interface TokenCardProps {
 }
 
 export function TokenCard({ token }: TokenCardProps) {
-  const symbolSlug = token.symbol.replace("$", "").toLowerCase()
+  // Use address-based URL for on-chain tokens, symbol for mock tokens
+  const tokenUrl = token.isOnChain && token.tokenAddress
+    ? `/token/address/${token.tokenAddress}`
+    : `/token/${token.symbol.replace("$", "").toLowerCase()}`
 
   return (
-    <Link href={`/token/${symbolSlug}`}>
+    <Link href={tokenUrl}>
       <Card className="group overflow-hidden border-glow-animated glass-morph backdrop-blur transition-all hover:shadow-lg hover:shadow-primary/20 scanlines cursor-pointer">
         <div className="relative h-48 overflow-hidden bg-muted/30">
-          <Image
-            src={token.image || "/placeholder.svg"}
-            alt={token.name}
-            fill
-            className="object-cover transition-transform group-hover:scale-110"
-          />
+          {token.image && !token.image.includes('placeholder') ? (
+            <Image
+              src={token.image}
+              alt={token.name}
+              fill
+              className="object-cover transition-transform group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+              <span className="text-5xl font-black text-primary/50" style={{ fontFamily: "var(--font-heading)" }}>
+                {token.symbol.replace("$", "").slice(0, 3)}
+              </span>
+            </div>
+          )}
+          <div className="absolute top-3 left-3">
+            {token.isOnChain && (
+              <div className="flex items-center gap-1 rounded-full bg-chart-2/90 px-2 py-1 text-xs font-bold backdrop-blur border border-chart-2 shadow-[0_0_10px_rgba(0,255,100,0.5)]">
+                <LinkIcon className="h-3 w-3" />
+                ON-CHAIN
+              </div>
+            )}
+          </div>
           <div className="absolute top-3 right-3">
             {token.status === "graduated" && (
               <div className="flex items-center gap-1 rounded-full bg-chart-2/90 px-3 py-1 text-xs font-bold backdrop-blur border border-chart-2 shadow-[0_0_10px_rgba(0,255,100,0.5)]">
@@ -34,7 +53,7 @@ export function TokenCard({ token }: TokenCardProps) {
                 RISING
               </div>
             )}
-            {token.status === "new" && (
+            {token.status === "new" && !token.isOnChain && (
               <div className="rounded-full bg-chart-5/90 px-3 py-1 text-xs font-bold backdrop-blur border border-chart-5 shadow-[0_0_10px_rgba(255,150,50,0.5)]">
                 NEW
               </div>

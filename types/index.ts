@@ -13,6 +13,10 @@ export interface Token {
   createdAt: string
   creator: string
   status: "new" | "rising" | "graduated"
+  // On-chain token fields (optional)
+  tokenAddress?: `0x${string}`
+  poolAddress?: `0x${string}`
+  isOnChain?: boolean
 }
 
 // Extended Token interface for detail pages
