@@ -1,27 +1,84 @@
+# ===========================================
 # Dependencies
+# ===========================================
 node_modules/
 
-# Build artifacts
+# ===========================================
+# Build Artifacts
+# ===========================================
 artifacts/
 cache/
 typechain-types/
 dist/
+out/
 
+# ===========================================
 # Coverage
+# ===========================================
 coverage/
 coverage.json
+*.lcov
 
-# Environment
+# ===========================================
+# Environment & Secrets (CRITICAL)
+# ===========================================
 .env
-.env.local
+.env.*
+!.env.example
+!.env.sample
 
-# IDE
+# Private keys and wallets
+*.pem
+*.key
+*.priv
+*.secret
+*wallet*.json
+*keystore*
+mnemonic*
+seed*
+
+# ===========================================
+# Deployment (may contain sensitive data)
+# ===========================================
+deployments/localhost/
+deployments/hardhat/
+broadcast/
+
+# Keep deployment records for mainnets/testnets but review before committing
+# deployments/bscTestnet/
+# deployments/bscMainnet/
+
+# ===========================================
+# IDE & Editors
+# ===========================================
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
-# OS
+# ===========================================
+# OS Files
+# ===========================================
 .DS_Store
 Thumbs.db
 
-# Hardhat
-deployments/localhost/
+# ===========================================
+# Foundry (if used)
+# ===========================================
+/lib/
+/cache_forge/
+
+# ===========================================
+# Debug & Logs
+# ===========================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# ===========================================
+# Temporary Files
+# ===========================================
+*.tmp
+*.temp
+.cache/
