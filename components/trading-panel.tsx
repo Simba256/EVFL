@@ -9,6 +9,7 @@ import { useWeightedPool } from "@/lib/blockchain/hooks"
 import { useAccount } from "wagmi"
 import { formatEther, parseEther, formatUnits } from "viem"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { formatSubscriptNumber } from "@/lib/utils/format"
 
 interface TradingPanelProps {
   tokenAddress: `0x${string}`
@@ -267,7 +268,7 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
               {isCalculating ? (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : outputAmount ? (
-                parseFloat(outputAmount).toFixed(6)
+                formatSubscriptNumber(parseFloat(outputAmount))
               ) : (
                 <span className="text-muted-foreground">0.0</span>
               )}
@@ -281,7 +282,7 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
         {/* Price info */}
         {inputAmount && outputAmount && (
           <div className="text-sm text-muted-foreground text-center">
-            1 {inputToken} ≈ {(parseFloat(outputAmount) / parseFloat(inputAmount)).toFixed(6)} {outputToken}
+            1 {inputToken} ≈ {formatSubscriptNumber(parseFloat(outputAmount) / parseFloat(inputAmount))} {outputToken}
           </div>
         )}
 

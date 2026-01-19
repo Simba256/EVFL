@@ -114,3 +114,88 @@ export function formatTokenPrice(price: number): string {
   }
   return `$${price.toFixed(6)}`
 }
+
+/**
+ * Unicode subscript digits for formatting
+ */
+const SUBSCRIPT_DIGITS = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉']
+
+/**
+ * Convert a number to subscript notation
+ * @param num - Number to convert to subscript
+ * @returns Subscript string representation
+ */
+function toSubscript(num: number): string {
+  return num
+    .toString()
+    .split('')
+    .map((digit) => SUBSCRIPT_DIGITS[parseInt(digit)])
+    .join('')
+}
+
+/**
+ * Format a very small number using subscript notation for leading zeros
+ * Examples:
+ *   0.0000004049 → 0.0₆4049
+ *   0.00000000123 → 0.0₈123
+ *   0.000000000000045 → 0.0₁₃45
+ *
+ * @param value - The number to format
+ * @param significantDigits - Number of significant digits to show (default: 4)
+ * @param threshold - Minimum leading zeros before using subscript notation (default: 4)
+ * @returns Formatted string with subscript notation if applicable
+ */
+export function formatSubscriptNumber(
+  value: number,
+  significantDigits: number = 4,
+  threshold: number = 4
+): string {
+  // Handle zero and negative numbers
+  if (value === 0) return '0'
+  if (value < 0) return '-' + formatSubscriptNumber(-value, significantDigits, threshold)
+
+  // For numbers >= 1, use regular formatting
+  if (value >= 1) {
+    return value.toLocaleString('en-US', { maximumFractionDigits: significantDigits })
+  }
+
+  // Convert to string to count leading zeros
+  const str = value.toFixed(20) // Use high precision to capture small numbers
+  const match = str.match(/^0\.(0*)([1-9]\d*)/)
+
+  if (!match) {
+    return value.toString()
+  }
+
+  const leadingZeros = match[1].length
+  const significantPart = match[2]
+
+  // If not enough leading zeros, use regular decimal notation
+  if (leadingZeros < threshold) {
+    return value.toFixed(leadingZeros + significantDigits)
+  }
+
+  // Use subscript notation: 0.0₆4049
+  const truncatedSignificant = significantPart.slice(0, significantDigits)
+  return `0.0${toSubscript(leadingZeros)}${truncatedSignificant}`
+}
+
+/**
+ * Format a token price with subscript notation for very small values
+ * @param price - Token price
+ * @param currency - Currency symbol to prepend (default: '$')
+ * @returns Formatted price string with subscript notation for small values
+ */
+export function formatTokenPriceSubscript(
+  price: number,
+  currency: string = '$'
+): string {
+  if (price >= 1) {
+    return `${currency}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+  if (price >= 0.0001) {
+    return `${currency}${price.toFixed(6)}`
+  }
+  // Use subscript notation for very small prices
+  return `${currency}${formatSubscriptNumber(price, 4, 4)}`
+}

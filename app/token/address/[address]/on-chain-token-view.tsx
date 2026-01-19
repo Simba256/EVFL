@@ -9,6 +9,7 @@ import { formatEther } from "viem"
 import { bscTestnetClient } from "@/lib/blockchain/client"
 import { TokenFactoryABI, WeightedPoolABI } from "@/lib/blockchain/abis"
 import { getContractAddresses } from "@/lib/blockchain/config/contracts"
+import { formatSubscriptNumber } from "@/lib/utils/format"
 
 interface OnChainTokenViewProps {
   tokenAddress: `0x${string}`
@@ -139,7 +140,7 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
     // Spot price = (bnbBalance / bnbWeight) / (tokenBalance / tokenWeight)
     if (tokenBalance > 0n && bnbBalance > 0n) {
       const price = (Number(bnbBalance) / Number(bnbWeight)) / (Number(tokenBalance) / Number(tokenWeight))
-      tokenPrice = `${price.toFixed(10)} BNB`
+      tokenPrice = `${formatSubscriptNumber(price)} BNB`
       liquidity = `${parseFloat(formatEther(bnbBalance)).toFixed(4)} BNB`
     }
   }
