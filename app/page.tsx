@@ -8,6 +8,9 @@ import { getTokens } from "@/lib/data/tokens"
 import { getOnChainTokens } from "@/lib/data/onchain-tokens"
 import Link from "next/link"
 
+// Force dynamic rendering to always fetch fresh on-chain data
+export const dynamic = 'force-dynamic'
+
 function TokenGridSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

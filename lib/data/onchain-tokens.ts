@@ -17,6 +17,7 @@ interface OnChainTokenInfo {
 export async function getOnChainTokens(): Promise<Token[]> {
   try {
     const addresses = getContractAddresses(97); // BSC Testnet
+    console.log('[getOnChainTokens] Fetching from TokenFactory:', addresses.tokenFactory);
 
     // Get all token addresses
     const tokenAddresses = await bscTestnetClient.readContract({
@@ -24,6 +25,8 @@ export async function getOnChainTokens(): Promise<Token[]> {
       abi: TokenFactoryABI,
       functionName: 'getAllTokens',
     }) as `0x${string}`[];
+
+    console.log('[getOnChainTokens] Found tokens:', tokenAddresses?.length || 0);
 
     if (!tokenAddresses || tokenAddresses.length === 0) {
       return [];
@@ -121,9 +124,11 @@ export async function getOnChainTokens(): Promise<Token[]> {
     );
 
     // Filter out any null results
-    return tokens.filter((t): t is Token => t !== null);
+    const validTokens = tokens.filter((t): t is Token => t !== null);
+    console.log('[getOnChainTokens] Returning', validTokens.length, 'valid tokens');
+    return validTokens;
   } catch (e) {
-    console.error('Error fetching on-chain tokens:', e);
+    console.error('[getOnChainTokens] Error fetching on-chain tokens:', e);
     return [];
   }
 }
