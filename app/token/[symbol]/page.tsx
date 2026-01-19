@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
 import { getTokenBySymbol, getTopHolders, getRecentTrades } from "@/lib/data/tokens"
+import { formatPriceString } from "@/lib/utils/format"
 
 // Generate dynamic metadata for token pages
 export async function generateMetadata({
@@ -122,7 +123,7 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
               <div className="flex flex-wrap gap-6">
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Price</div>
-                  <div className="text-2xl font-bold text-foreground">{token.price}</div>
+                  <div className="text-2xl font-bold text-foreground">{formatPriceString(token.price)}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">24h Change</div>

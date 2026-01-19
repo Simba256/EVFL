@@ -4,6 +4,7 @@ import { useState } from "react"
 import { TrendingUp, TrendingDown, Users, Activity } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
+import { formatSubscriptNumber } from "@/lib/utils/format"
 
 interface LeaderboardToken {
   rank: number
@@ -178,7 +179,7 @@ export function LeaderboardTable() {
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Price</div>
-                    <div className="font-bold text-foreground">${token.price.toFixed(4)}</div>
+                    <div className="font-bold text-foreground">${formatSubscriptNumber(token.price)}</div>
                     <div
                       className={`flex items-center gap-1 text-xs font-semibold ${
                         token.change24h > 0 ? "text-chart-2" : "text-destructive"

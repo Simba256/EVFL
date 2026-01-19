@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card"
 import type { Token } from "@/types"
 import Image from "next/image"
 import Link from "next/link"
+import { formatPriceString } from "@/lib/utils/format"
 
 interface TokenCardProps {
   token: Token
@@ -71,7 +72,7 @@ export function TokenCard({ token }: TokenCardProps) {
                 <p className="text-sm text-primary font-mono">{token.symbol}</p>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-foreground">{token.price}</div>
+                <div className="text-lg font-bold text-foreground">{formatPriceString(token.price)}</div>
                 <div
                   className={`flex items-center gap-1 text-sm font-semibold ${
                     token.change24h > 0 ? "text-chart-2" : "text-destructive"

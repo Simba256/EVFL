@@ -199,3 +199,29 @@ export function formatTokenPriceSubscript(
   // Use subscript notation for very small prices
   return `${currency}${formatSubscriptNumber(price, 4, 4)}`
 }
+
+/**
+ * Parse a price string and format it with subscript notation if needed
+ * Handles formats like "$0.0000004049", "0.0000004049 BNB", "0.0042", etc.
+ * @param priceString - The price string to parse and format
+ * @returns Formatted price string with subscript notation for small values
+ */
+export function formatPriceString(priceString: string): string {
+  if (!priceString) return priceString
+
+  // Extract the numeric part and any prefix/suffix
+  const match = priceString.match(/^(\$)?([0-9.]+)\s*(.*)$/)
+  if (!match) return priceString
+
+  const [, prefix = '', numStr, suffix = ''] = match
+  const num = parseFloat(numStr)
+
+  if (isNaN(num)) return priceString
+
+  // If number is large enough, return as-is
+  if (num >= 0.0001) return priceString
+
+  // Format with subscript notation
+  const formatted = formatSubscriptNumber(num)
+  return `${prefix}${formatted}${suffix ? ' ' + suffix : ''}`
+}

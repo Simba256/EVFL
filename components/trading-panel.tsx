@@ -227,7 +227,7 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
               onClick={setMaxInput}
               className="text-xs text-primary hover:underline"
             >
-              Balance: {parseFloat(formatEther(inputBalance)).toFixed(4)} {inputToken}
+              Balance: {formatSubscriptNumber(parseFloat(formatEther(inputBalance)))} {inputToken}
             </button>
           </div>
           <div className="flex gap-3">
@@ -260,7 +260,7 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
           <div className="flex justify-between mb-2">
             <Label className="text-sm text-muted-foreground">You Receive</Label>
             <span className="text-xs text-muted-foreground">
-              Balance: {parseFloat(formatEther(outputBalance)).toFixed(4)} {outputToken}
+              Balance: {formatSubscriptNumber(parseFloat(formatEther(outputBalance)))} {outputToken}
             </span>
           </div>
           <div className="flex gap-3">
