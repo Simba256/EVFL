@@ -4,7 +4,7 @@
  * This script indexes blockchain events and stores them in the database:
  * - TokenCreated events from TokenFactory
  * - Swap events from WeightedPool contracts
- * - Transfer events for holder tracking (future)
+ * - Transfer events for holder tracking
  *
  * Usage:
  *   npx ts-node scripts/indexer/index.ts
@@ -28,6 +28,10 @@ const TokenCreatedEvent = parseAbiItem(
 
 const SwapEvent = parseAbiItem(
   'event Swap(address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut, address indexed trader)'
+)
+
+const TransferEvent = parseAbiItem(
+  'event Transfer(address indexed from, address indexed to, uint256 value)'
 )
 
 // Configuration
@@ -339,6 +343,158 @@ async function processSwapEvents(
   }
 }
 
+// Zero address for mint/burn detection
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+/**
+ * Process Transfer events for holder tracking
+ */
+async function processTransferEvents(
+  tokenAddress: Address,
+  tokenId: string,
+  totalSupply: string,
+  fromBlock: bigint,
+  toBlock: bigint
+): Promise<void> {
+  console.log(`Fetching Transfer events for token ${tokenAddress} from block ${fromBlock} to ${toBlock}`)
+
+  try {
+    const logs = await publicClient.getLogs({
+      address: tokenAddress,
+      event: TransferEvent,
+      fromBlock,
+      toBlock,
+    })
+
+    console.log(`Found ${logs.length} Transfer events for token ${tokenAddress}`)
+
+    if (logs.length === 0) {
+      // Update indexer state even if no events
+      await updateIndexerState(tokenAddress, 'Token', 'Transfer', toBlock)
+      return
+    }
+
+    const totalSupplyBigInt = BigInt(totalSupply)
+
+    for (const log of logs) {
+      const { from, to, value } = log.args as {
+        from: Address
+        to: Address
+        value: bigint
+      }
+
+      const fromLower = from.toLowerCase()
+      const toLower = to.toLowerCase()
+      const valueStr = value.toString()
+
+      // Update sender balance (if not mint from zero address)
+      if (fromLower !== ZERO_ADDRESS) {
+        const existingFrom = await prisma.tokenHolder.findUnique({
+          where: {
+            tokenId_holderAddress: {
+              tokenId,
+              holderAddress: fromLower,
+            },
+          },
+        })
+
+        if (existingFrom) {
+          const newBalance = BigInt(existingFrom.balance) - value
+          if (newBalance <= 0n) {
+            // Remove holder if balance is zero or negative
+            await prisma.tokenHolder.delete({
+              where: { id: existingFrom.id },
+            })
+            console.log(`Removed holder ${fromLower} (balance: 0)`)
+          } else {
+            // Update balance
+            const percentage = totalSupplyBigInt > 0n
+              ? Number((newBalance * 10000n) / totalSupplyBigInt) / 100
+              : 0
+            await prisma.tokenHolder.update({
+              where: { id: existingFrom.id },
+              data: {
+                balance: newBalance.toString(),
+                percentage,
+                lastUpdatedBlock: log.blockNumber,
+                lastUpdatedAt: new Date(),
+              },
+            })
+          }
+        }
+      }
+
+      // Update receiver balance (if not burn to zero address)
+      if (toLower !== ZERO_ADDRESS) {
+        const existingTo = await prisma.tokenHolder.findUnique({
+          where: {
+            tokenId_holderAddress: {
+              tokenId,
+              holderAddress: toLower,
+            },
+          },
+        })
+
+        if (existingTo) {
+          // Update existing holder
+          const newBalance = BigInt(existingTo.balance) + value
+          const percentage = totalSupplyBigInt > 0n
+            ? Number((newBalance * 10000n) / totalSupplyBigInt) / 100
+            : 0
+          await prisma.tokenHolder.update({
+            where: { id: existingTo.id },
+            data: {
+              balance: newBalance.toString(),
+              percentage,
+              lastUpdatedBlock: log.blockNumber,
+              lastUpdatedAt: new Date(),
+            },
+          })
+        } else {
+          // Create new holder
+          const percentage = totalSupplyBigInt > 0n
+            ? Number((value * 10000n) / totalSupplyBigInt) / 100
+            : 0
+          await prisma.tokenHolder.create({
+            data: {
+              tokenId,
+              tokenAddress: tokenAddress.toLowerCase(),
+              holderAddress: toLower,
+              balance: valueStr,
+              percentage,
+              lastUpdatedBlock: log.blockNumber,
+            },
+          })
+          console.log(`Added new holder ${toLower}`)
+        }
+      }
+    }
+
+    // Update holders count on the token
+    const holdersCount = await prisma.tokenHolder.count({
+      where: { tokenId },
+    })
+    await prisma.token.update({
+      where: { id: tokenId },
+      data: { holdersCount },
+    })
+    console.log(`Updated holders count for token: ${holdersCount}`)
+
+    // Update indexer state
+    const lastLog = logs[logs.length - 1]
+    await updateIndexerState(
+      tokenAddress,
+      'Token',
+      'Transfer',
+      lastLog.blockNumber,
+      lastLog.transactionHash
+    )
+  } catch (error) {
+    console.error(`Error processing Transfer events for token ${tokenAddress}:`, error)
+    await recordError(tokenAddress, 'Token', 'Transfer', (error as Error).message)
+  }
+}
+
 /**
  * Load existing pools from database
  */
@@ -402,6 +558,25 @@ async function runIndexer(): Promise<void> {
               currentBlock
             )
           }
+        }
+      }
+
+      // Index Transfer events for all on-chain tokens (holder tracking)
+      const onChainTokens = await prisma.token.findMany({
+        where: { isOnChain: true },
+        select: { id: true, tokenAddress: true, totalSupply: true },
+      })
+
+      for (const token of onChainTokens) {
+        const lastTransferBlock = await getLastIndexedBlock(token.tokenAddress, 'Transfer')
+        if (currentBlock > lastTransferBlock) {
+          await processTransferEvents(
+            token.tokenAddress as Address,
+            token.id,
+            token.totalSupply,
+            lastTransferBlock + 1n,
+            currentBlock
+          )
         }
       }
 
