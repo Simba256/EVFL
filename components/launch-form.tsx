@@ -8,10 +8,58 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useTokenFactory } from "@/lib/blockchain/hooks"
 import { useAccount } from "wagmi"
-import { formatEther } from "viem"
+import { formatEther, parseEther } from "viem"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 
-type TxState = 'idle' | 'wrapping' | 'approving' | 'creating' | 'success' | 'error';
+type TxState = 'idle' | 'wrapping' | 'approving' | 'creating' | 'saving' | 'success' | 'error';
+
+// Save token to database
+async function saveTokenToDatabase(data: {
+  name: string
+  symbol: string
+  description: string
+  tokenAddress: string
+  poolAddress: string
+  creatorAddress: string
+  totalSupply: string
+  initialBnbLiquidity: string
+  tokenWeight: number
+  deployTxHash: string
+}): Promise<boolean> {
+  try {
+    const response = await fetch('/api/tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: data.name,
+        symbol: data.symbol,
+        description: data.description,
+        image: '', // TODO: Add image upload
+        tokenAddress: data.tokenAddress,
+        poolAddress: data.poolAddress,
+        creatorAddress: data.creatorAddress,
+        totalSupply: parseEther(data.totalSupply).toString(),
+        decimals: 18,
+        initialBnbLiquidity: data.initialBnbLiquidity,
+        tokenWeight: data.tokenWeight,
+        deployTxHash: data.deployTxHash,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('Failed to save token to database:', errorData)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error saving token to database:', error)
+    return false
+  }
+}
 
 export function LaunchForm() {
   const [tokenName, setTokenName] = useState("")
@@ -28,7 +76,7 @@ export function LaunchForm() {
   const [error, setError] = useState<string>("")
   const [launchFee, setLaunchFee] = useState<string>("0.01")
 
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { createToken, getLaunchFee, isConfigured } = useTokenFactory()
 
   // Fetch launch fee on mount
@@ -100,6 +148,26 @@ export function LaunchForm() {
       setTxHash(result.txHash)
       setTokenAddress(result.tokenAddress)
       setPoolAddress(result.poolAddress)
+
+      // Save to database
+      setTxState('saving')
+      const saved = await saveTokenToDatabase({
+        name: tokenName,
+        symbol: tokenSymbol.replace('$', ''),
+        description: description,
+        tokenAddress: result.tokenAddress,
+        poolAddress: result.poolAddress,
+        creatorAddress: address as string,
+        totalSupply: supply,
+        initialBnbLiquidity: bnbLiquidity,
+        tokenWeight: weightNum,
+        deployTxHash: result.txHash,
+      })
+
+      if (!saved) {
+        console.warn('Token created on-chain but failed to save to database')
+      }
+
       setTxState('success')
     } catch (err: any) {
       console.error('Error creating token:', err)
@@ -175,10 +243,11 @@ export function LaunchForm() {
   }
 
   // Loading states
-  const isLoading = txState === 'wrapping' || txState === 'approving' || txState === 'creating'
+  const isLoading = txState === 'wrapping' || txState === 'approving' || txState === 'creating' || txState === 'saving'
   const loadingText = txState === 'wrapping' ? 'Wrapping BNB...' :
                       txState === 'approving' ? 'Approving WBNB...' :
-                      txState === 'creating' ? 'Creating Token...' : ''
+                      txState === 'creating' ? 'Creating Token...' :
+                      txState === 'saving' ? 'Saving to Database...' : ''
 
   return (
     <Card className="border-glow-animated glass-morph backdrop-blur p-6 md:p-8 digital-corners scanlines">

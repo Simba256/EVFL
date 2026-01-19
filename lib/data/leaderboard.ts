@@ -1,4 +1,9 @@
 import type { LeaderboardToken, LeaderboardSortBy } from '@/types'
+import {
+  getLeaderboardFromDb,
+  isDatabaseAvailable,
+  useDatabaseEnabled,
+} from '@/lib/db'
 
 // Mock leaderboard data
 export const MOCK_LEADERBOARD_DATA: LeaderboardToken[] = [
@@ -77,19 +82,27 @@ export const MOCK_LEADERBOARD_DATA: LeaderboardToken[] = [
 ]
 
 /**
- * Get leaderboard data
+ * Get leaderboard data with database fallback
  * @param sortBy - Sort criterion (marketCap, volume, holders)
  * @returns Promise<LeaderboardToken[]>
- *
- * Future: Replace with API call
- * const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leaderboard?sortBy=${sortBy}`, { next: { revalidate: 60 } })
- * return res.json()
  */
 export async function getLeaderboard(sortBy: LeaderboardSortBy = 'marketCap'): Promise<LeaderboardToken[]> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 100))
+  // Check if database is enabled and available
+  if (useDatabaseEnabled()) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const leaderboard = await getLeaderboardFromDb(sortBy)
+        if (leaderboard.length > 0) {
+          return leaderboard
+        }
+      }
+    } catch (error) {
+      console.warn('Database query failed, falling back to mock data:', error)
+    }
+  }
 
-  // Sort data based on criterion
+  // Fallback to mock data
   const sorted = [...MOCK_LEADERBOARD_DATA].sort((a, b) => {
     switch (sortBy) {
       case 'volume':

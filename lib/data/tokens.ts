@@ -1,4 +1,13 @@
-import type { Token, TokenDetail, Holder, Trade } from '@/types'
+import type { Token, TokenDetail, Holder, Trade, TokenFilter } from '@/types'
+import {
+  getTokensFromDb,
+  getTokenByAddress,
+  getTokenBySymbolFromDb,
+  getHoldersForToken,
+  getTradesForToken,
+  isDatabaseAvailable,
+  useDatabaseEnabled,
+} from '@/lib/db'
 
 // Mock token data - matches what's currently in components
 export const MOCK_TOKENS: Token[] = [
@@ -168,49 +177,118 @@ export const MOCK_RECENT_TRADES: Trade[] = [
 ]
 
 /**
- * Get all tokens
+ * Get all tokens with database fallback to mock data
+ * @param filter - Optional filter for token status
  * @returns Promise<Token[]>
- *
- * Future: Replace with API call
- * const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tokens`, { next: { revalidate: 60 } })
- * return res.json()
  */
-export async function getTokens(): Promise<Token[]> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 100))
-  return MOCK_TOKENS
+export async function getTokens(filter?: TokenFilter): Promise<Token[]> {
+  // Check if database is enabled and available
+  if (useDatabaseEnabled()) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const tokens = await getTokensFromDb(filter)
+        // If database has tokens, return them
+        if (tokens.length > 0) {
+          return tokens
+        }
+        // Fall through to mock data if DB is empty
+      }
+    } catch (error) {
+      console.warn('Database query failed, falling back to mock data:', error)
+    }
+  }
+
+  // Fallback to mock data
+  let tokens = MOCK_TOKENS
+  if (filter && filter !== 'all') {
+    tokens = tokens.filter(t => t.status === filter)
+  }
+  return tokens
 }
 
 /**
- * Get token by symbol (lowercase, no $)
- * @param symbol - Token symbol (e.g., "robowar", "ctrl")
+ * Get token by symbol with database fallback
+ * @param symbol - Token symbol (e.g., "robowar", "ctrl", "$ROBOWAR")
  * @returns Promise<TokenDetail | null>
  */
 export async function getTokenBySymbol(symbol: string): Promise<TokenDetail | null> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 100))
-  return MOCK_TOKEN_DETAILS[symbol.toLowerCase()] || null
+  // Normalize symbol (remove $ prefix if present)
+  const normalizedSymbol = symbol.replace(/^\$/, '').toUpperCase()
+
+  // Check if database is enabled and available
+  if (useDatabaseEnabled()) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const token = await getTokenBySymbolFromDb(normalizedSymbol)
+        if (token) {
+          return token
+        }
+      }
+    } catch (error) {
+      console.warn('Database query failed, falling back to mock data:', error)
+    }
+  }
+
+  // Fallback to mock data (uses lowercase key without $)
+  const mockKey = normalizedSymbol.toLowerCase()
+  return MOCK_TOKEN_DETAILS[mockKey] || null
 }
 
 /**
- * Get top holders for a token
- * @param symbol - Token symbol
+ * Get top holders for a token with database fallback
+ * @param symbolOrAddress - Token symbol or address
  * @returns Promise<Holder[]>
  */
-export async function getTopHolders(symbol: string): Promise<Holder[]> {
-  // Future: Fetch actual holder data by symbol
-  await new Promise(resolve => setTimeout(resolve, 100))
+export async function getTopHolders(symbolOrAddress: string): Promise<Holder[]> {
+  // Check if it's an address
+  const isAddress = symbolOrAddress.match(/^0x[a-fA-F0-9]{40}$/)
+
+  // Check if database is enabled and available
+  if (useDatabaseEnabled() && isAddress) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const holders = await getHoldersForToken(symbolOrAddress)
+        if (holders.length > 0) {
+          return holders
+        }
+      }
+    } catch (error) {
+      console.warn('Database query failed, falling back to mock data:', error)
+    }
+  }
+
+  // Fallback to mock data
   return MOCK_TOP_HOLDERS
 }
 
 /**
- * Get recent trades for a token
- * @param symbol - Token symbol
+ * Get recent trades for a token with database fallback
+ * @param symbolOrAddress - Token symbol or address
  * @returns Promise<Trade[]>
  */
-export async function getRecentTrades(symbol: string): Promise<Trade[]> {
-  // Future: Fetch actual trade data by symbol
-  await new Promise(resolve => setTimeout(resolve, 100))
+export async function getRecentTrades(symbolOrAddress: string): Promise<Trade[]> {
+  // Check if it's an address
+  const isAddress = symbolOrAddress.match(/^0x[a-fA-F0-9]{40}$/)
+
+  // Check if database is enabled and available
+  if (useDatabaseEnabled() && isAddress) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const trades = await getTradesForToken(symbolOrAddress)
+        if (trades.length > 0) {
+          return trades
+        }
+      }
+    } catch (error) {
+      console.warn('Database query failed, falling back to mock data:', error)
+    }
+  }
+
+  // Fallback to mock data
   return MOCK_RECENT_TRADES
 }
 
@@ -220,6 +298,34 @@ export async function getRecentTrades(symbol: string): Promise<Trade[]> {
  * @returns Promise<Token[]>
  */
 export async function getTokensByStatus(status: 'new' | 'rising' | 'graduated'): Promise<Token[]> {
-  const tokens = await getTokens()
-  return tokens.filter(token => token.status === status)
+  return getTokens(status)
+}
+
+/**
+ * Get token by address with database fallback
+ * @param address - Token contract address
+ * @returns Promise<TokenDetail | null>
+ */
+export async function getTokenByAddressWithFallback(address: string): Promise<TokenDetail | null> {
+  if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    return null
+  }
+
+  // Check if database is enabled and available
+  if (useDatabaseEnabled()) {
+    try {
+      const dbAvailable = await isDatabaseAvailable()
+      if (dbAvailable) {
+        const token = await getTokenByAddress(address)
+        if (token) {
+          return token
+        }
+      }
+    } catch (error) {
+      console.warn('Database query failed:', error)
+    }
+  }
+
+  // No mock fallback for address lookup
+  return null
 }

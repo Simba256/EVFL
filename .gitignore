@@ -34,6 +34,7 @@ node_modules/
 *keystore*
 mnemonic*
 seed*
+!prisma/seed.ts
 
 # ===========================================
 # Testing & Coverage
@@ -93,3 +94,5 @@ next-env.d.ts
 .cache/
 tmp/
 temp/
+
+/lib/generated/prisma

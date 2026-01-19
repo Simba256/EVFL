@@ -1,0 +1,203 @@
+// Prisma Schema for Robotics Memecoin Launchpad
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Token status enum matching frontend types
+enum TokenStatus {
+  new
+  rising
+  graduated
+}
+
+// Trade type enum
+enum TradeType {
+  buy
+  sell
+}
+
+// Core Token model - stores token metadata and cached metrics
+model Token {
+  id                String      @id @default(cuid())
+  name              String
+  symbol            String      @unique
+  description       String      @default("")
+  image             String      @default("")
+
+  // On-chain addresses
+  tokenAddress      String      @unique @db.VarChar(42)
+  poolAddress       String?     @db.VarChar(42)
+  creatorAddress    String      @db.VarChar(42)
+
+  // Token configuration
+  totalSupply       String      @default("0") // Stored as string for BigInt precision
+  decimals          Int         @default(18)
+  initialBnbLiquidity String    @default("0")
+  tokenWeight       Int         @default(80) // 50-99 percent
+
+  // Cached metrics (updated by indexer)
+  price             String      @default("0")
+  priceUSD          Float       @default(0)
+  marketCap         String      @default("0")
+  volume24h         String      @default("0")
+  liquidity         String      @default("0")
+  fdv               String      @default("0")
+  circulatingSupply String      @default("0")
+  holdersCount      Int         @default(0)
+  change24h         Float       @default(0)
+  change7d          Float       @default(0)
+
+  // Status and timestamps
+  status            TokenStatus @default(new)
+  isOnChain         Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  deployedAt        DateTime?   // Block timestamp when deployed
+  graduatedAt       DateTime?   // When token graduated from bonding curve
+
+  // Transaction hashes
+  deployTxHash      String?     @db.VarChar(66)
+
+  // Relations
+  trades            Trade[]
+  holders           TokenHolder[]
+  priceHistory      PriceHistory[]
+
+  @@index([status])
+  @@index([creatorAddress])
+  @@index([createdAt(sort: Desc)])
+  @@index([marketCap(sort: Desc)])
+  @@index([volume24h(sort: Desc)])
+  @@map("tokens")
+}
+
+// Trade model - swap events from WeightedPool contracts
+model Trade {
+  id                String    @id @default(cuid())
+
+  // Token reference
+  tokenId           String
+  token             Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  tokenAddress      String    @db.VarChar(42)
+
+  // Trade details
+  type              TradeType
+  traderAddress     String    @db.VarChar(42)
+  tokenAmount       String    // Amount of tokens traded
+  bnbAmount         String    // Amount of BNB traded
+  price             String    // Price at time of trade
+  priceUSD          Float     @default(0)
+
+  // On-chain data
+  txHash            String    @unique @db.VarChar(66)
+  blockNumber       BigInt
+  blockTimestamp    DateTime
+  logIndex          Int
+
+  // Timestamps
+  createdAt         DateTime  @default(now())
+
+  @@index([tokenId])
+  @@index([tokenAddress])
+  @@index([traderAddress])
+  @@index([blockTimestamp(sort: Desc)])
+  @@index([type])
+  @@map("trades")
+}
+
+// Price History model - OHLCV candles for charts
+model PriceHistory {
+  id                String    @id @default(cuid())
+
+  // Token reference
+  tokenId           String
+  token             Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  // Candle timeframe (in seconds): 60=1m, 300=5m, 900=15m, 3600=1h, 86400=1d
+  interval          Int
+
+  // Candle timestamp (start of period)
+  timestamp         DateTime
+
+  // OHLCV data
+  open              String
+  high              String
+  low               String
+  close             String
+  volume            String
+  volumeUsd         Float     @default(0)
+  tradeCount        Int       @default(0)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([tokenId, interval, timestamp])
+  @@index([tokenId, interval])
+  @@index([timestamp(sort: Desc)])
+  @@map("price_history")
+}
+
+// Token Holder model - holder balances and percentages
+model TokenHolder {
+  id                String    @id @default(cuid())
+
+  // Token reference
+  tokenId           String
+  token             Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  tokenAddress      String    @db.VarChar(42)
+
+  // Holder details
+  holderAddress     String    @db.VarChar(42)
+  balance           String    // Current balance
+  percentage        Float     // Percentage of total supply
+
+  // Last update from Transfer events
+  lastUpdatedBlock  BigInt
+  lastUpdatedAt     DateTime  @default(now())
+
+  createdAt         DateTime  @default(now())
+
+  @@unique([tokenId, holderAddress])
+  @@index([tokenId])
+  @@index([tokenAddress])
+  @@index([holderAddress])
+  @@index([percentage(sort: Desc)])
+  @@map("token_holders")
+}
+
+// Indexer State model - track last indexed block per contract/event type
+model IndexerState {
+  id                String    @id @default(cuid())
+
+  // Contract being indexed
+  contractAddress   String    @db.VarChar(42)
+  contractType      String    // 'TokenFactory', 'WeightedPool', 'Token'
+  eventType         String    // 'TokenCreated', 'Swap', 'Transfer'
+
+  // Chain info
+  chainId           Int
+
+  // Last indexed block
+  lastIndexedBlock  BigInt
+  lastIndexedTxHash String?   @db.VarChar(66)
+  lastIndexedAt     DateTime  @default(now())
+
+  // Error tracking
+  lastError         String?
+  errorCount        Int       @default(0)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([contractAddress, eventType, chainId])
+  @@index([contractType])
+  @@index([chainId])
+  @@map("indexer_state")
+}
