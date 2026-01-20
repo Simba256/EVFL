@@ -15,6 +15,8 @@ export async function GET() {
     const pool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 5000,
     })
 
     try {
