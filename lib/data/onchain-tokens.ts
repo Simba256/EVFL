@@ -3,6 +3,7 @@ import { TokenFactoryABI, WeightedPoolABI } from '@/lib/blockchain/abis';
 import { getContractAddresses } from '@/lib/blockchain/config/contracts';
 import { formatEther } from 'viem';
 import type { Token } from '@/types';
+import { getTokenByAddress, isDatabaseAvailable, useDatabaseEnabled } from '@/lib/db';
 
 interface OnChainTokenInfo {
   token: `0x${string}`;
@@ -18,6 +19,11 @@ export async function getOnChainTokens(): Promise<Token[]> {
   try {
     const addresses = getContractAddresses(97); // BSC Testnet
     console.log('[getOnChainTokens] Fetching from TokenFactory:', addresses.tokenFactory);
+
+    // Check if database is available for metadata enrichment
+    const dbEnabled = useDatabaseEnabled();
+    const dbAvailable = dbEnabled ? await isDatabaseAvailable() : false;
+    console.log('[getOnChainTokens] Database available for metadata:', dbAvailable);
 
     // Get all token addresses
     const tokenAddresses = await bscTestnetClient.readContract({
@@ -97,12 +103,27 @@ export async function getOnChainTokens(): Promise<Token[]> {
           else if (diffHours > 0) timeAgo = `${diffHours}h ago`;
           else if (diffMins > 0) timeAgo = `${diffMins}m ago`;
 
+          // Try to get metadata from database (image, description)
+          let dbImage = '';
+          let dbDescription = '';
+          if (dbAvailable) {
+            try {
+              const dbToken = await getTokenByAddress(tokenAddr);
+              if (dbToken) {
+                dbImage = dbToken.image || '';
+                dbDescription = dbToken.description || '';
+              }
+            } catch (e) {
+              console.error('Error fetching db metadata for token:', tokenAddr, e);
+            }
+          }
+
           return {
             id: tokenAddr,
             name: info.name,
             symbol: `$${info.symbol}`,
-            description: `Launched on RoboLaunch with Balancer-style weighted pool.`,
-            image: '/robot-placeholder.png', // Default image
+            description: dbDescription || `Launched on RoboLaunch with Balancer-style weighted pool.`,
+            image: dbImage || '', // Use DB image if available
             marketCap,
             volume24h: liquidity, // Using liquidity as proxy for now
             holders: 1, // Would need to index Transfer events to track

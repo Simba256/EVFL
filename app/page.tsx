@@ -22,20 +22,27 @@ function TokenGridSkeleton() {
 }
 
 async function TokenGridWrapper() {
-  // Fetch both on-chain and mock tokens
-  const [onChainTokens, mockTokens] = await Promise.all([
-    getOnChainTokens(),
-    getTokens(),
-  ])
+  // Fetch on-chain tokens (now enriched with database metadata)
+  const onChainTokens = await getOnChainTokens()
 
-  // On-chain tokens first, then mock tokens
-  const allTokens = [...onChainTokens, ...mockTokens]
+  // Only show mock tokens if there are no on-chain tokens (for demo purposes)
+  let allTokens = onChainTokens
+  let mockTokens: Awaited<ReturnType<typeof getTokens>> = []
+
+  if (onChainTokens.length === 0) {
+    mockTokens = await getTokens()
+    allTokens = mockTokens
+  }
 
   return (
     <>
-      {onChainTokens.length > 0 && (
+      {onChainTokens.length > 0 ? (
         <div className="mb-4 text-sm text-muted-foreground">
-          Showing {onChainTokens.length} on-chain token{onChainTokens.length !== 1 ? 's' : ''} and {mockTokens.length} demo tokens
+          Showing {onChainTokens.length} on-chain token{onChainTokens.length !== 1 ? 's' : ''}
+        </div>
+      ) : mockTokens.length > 0 && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {mockTokens.length} demo tokens (no on-chain tokens found)
         </div>
       )}
       <TokenGrid tokens={allTokens} />
