@@ -20,7 +20,12 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient()
   }
 
-  const pool = new Pool({ connectionString })
+  // Enable SSL for Supabase/cloud databases
+  const isCloudDb = connectionString.includes('supabase') || connectionString.includes('neon') || connectionString.includes('railway')
+  const pool = new Pool({
+    connectionString,
+    ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
+  })
   globalForPrisma.pool = pool
 
   // Create the Prisma adapter
