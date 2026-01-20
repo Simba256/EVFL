@@ -1,37 +1,43 @@
 import { NextResponse } from 'next/server'
 import { Pool } from 'pg'
 
+export const maxDuration = 10 // 10 second timeout
+
 export async function GET() {
+  const connectionString = process.env.DATABASE_URL
+
   const result: Record<string, unknown> = {
     USE_DATABASE: process.env.USE_DATABASE,
-    DATABASE_URL_SET: !!process.env.DATABASE_URL,
-    DATABASE_URL_PREVIEW: process.env.DATABASE_URL?.substring(0, 50) + '...',
+    DATABASE_URL_SET: !!connectionString,
+    DATABASE_URL_PREVIEW: connectionString?.substring(0, 60) + '...',
+    hasPooler: connectionString?.includes('pooler'),
     NODE_ENV: process.env.NODE_ENV,
   }
 
-  // Try direct pg connection to see the actual error
-  const connectionString = process.env.DATABASE_URL
-  if (connectionString) {
-    const pool = new Pool({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 5000,
-    })
+  if (!connectionString) {
+    return NextResponse.json(result)
+  }
 
-    try {
-      const client = await pool.connect()
-      const res = await client.query('SELECT COUNT(*) FROM "Token"')
-      result.directConnection = 'SUCCESS'
-      result.tokenCount = res.rows[0].count
-      client.release()
-    } catch (error) {
-      result.directConnection = 'FAILED'
-      result.error = (error as Error).message
-      result.errorStack = (error as Error).stack?.split('\n').slice(0, 5)
-    } finally {
-      await pool.end()
-    }
+  const pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+    connectionTimeoutMillis: 5000,
+  })
+
+  try {
+    const res = await pool.query('SELECT 1 as test')
+    result.connection = 'SUCCESS'
+    result.testResult = res.rows[0]
+
+    // Try to count tokens
+    const tokenRes = await pool.query('SELECT COUNT(*) FROM "Token"')
+    result.tokenCount = tokenRes.rows[0].count
+  } catch (error) {
+    result.connection = 'FAILED'
+    result.error = (error as Error).message
+  } finally {
+    await pool.end().catch(() => {})
   }
 
   return NextResponse.json(result)
