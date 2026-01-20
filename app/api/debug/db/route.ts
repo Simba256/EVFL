@@ -30,9 +30,24 @@ export async function GET() {
     result.connection = 'SUCCESS'
     result.testResult = res.rows[0]
 
-    // Try to count tokens
-    const tokenRes = await pool.query('SELECT COUNT(*) FROM "Token"')
-    result.tokenCount = tokenRes.rows[0].count
+    // List all tables
+    const tablesRes = await pool.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+    `)
+    result.tables = tablesRes.rows.map(r => r.table_name)
+
+    // Try different table name formats
+    for (const tableName of ['Token', 'token', 'tokens', 'Tokens']) {
+      try {
+        const tokenRes = await pool.query(`SELECT COUNT(*) FROM "${tableName}"`)
+        result.tokenCount = tokenRes.rows[0].count
+        result.foundTable = tableName
+        break
+      } catch (e) {
+        // continue trying
+      }
+    }
   } catch (error) {
     result.connection = 'FAILED'
     result.error = (error as Error).message
