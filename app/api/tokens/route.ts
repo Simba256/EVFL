@@ -11,6 +11,9 @@ import {
 import { getTokens } from '@/lib/data/tokens'
 import type { TokenFilter } from '@/types'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/tokens - List tokens with optional filters
 export async function GET(request: NextRequest) {
   try {

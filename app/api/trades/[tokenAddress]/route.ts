@@ -7,6 +7,9 @@ import {
 } from '@/lib/db'
 import { getRecentTrades } from '@/lib/data/tokens'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/trades/[tokenAddress] - Get trades for a token
 export async function GET(
   request: NextRequest,

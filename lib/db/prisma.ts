@@ -16,8 +16,8 @@ function createPrismaClient(): PrismaClient {
 
   if (!connectionString) {
     console.warn('DATABASE_URL not set, Prisma will not be able to connect to the database')
-    // Return a client that will fail on actual queries
-    return new PrismaClient()
+    // Throw error - caller should check for DATABASE_URL before using prisma
+    throw new Error('DATABASE_URL is required to use the database')
   }
 
   // Enable SSL for Supabase/cloud databases
@@ -25,7 +25,7 @@ function createPrismaClient(): PrismaClient {
   const pool = new Pool({
     connectionString,
     ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
-    max: 1,
+    max: parseInt(process.env.DATABASE_POOL_SIZE || '10'),
     connectionTimeoutMillis: 10000,
     idleTimeoutMillis: 10000,
   })
@@ -43,14 +43,28 @@ function createPrismaClient(): PrismaClient {
   })
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+// Lazy initialization - only create client when actually accessed
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient()
+  }
+  return globalForPrisma.prisma
 }
+
+// Export a proxy that lazily initializes prisma on first use
+// This prevents initialization during build time
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return getPrismaClient()[prop as keyof PrismaClient]
+  }
+})
 
 // Helper to check if database is available
 export async function isDatabaseAvailable(): Promise<boolean> {
+  // Quick check - if no DATABASE_URL, database is definitely not available
+  if (!process.env.DATABASE_URL) {
+    return false
+  }
   try {
     await prisma.$queryRaw`SELECT 1`
     return true

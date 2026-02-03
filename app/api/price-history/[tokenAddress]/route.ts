@@ -7,6 +7,9 @@ import {
   type CandleInterval,
 } from '@/lib/db'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/price-history/[tokenAddress] - Get price history (OHLCV candles)
 export async function GET(
   request: NextRequest,

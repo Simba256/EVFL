@@ -8,6 +8,9 @@ import {
 } from '@/lib/db'
 import { getTokenBySymbol } from '@/lib/data/tokens'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/tokens/[address] - Get single token by address
 export async function GET(
   request: NextRequest,

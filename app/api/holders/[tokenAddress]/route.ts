@@ -7,6 +7,9 @@ import {
 } from '@/lib/db'
 import { getTopHolders } from '@/lib/data/tokens'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/holders/[tokenAddress] - Get holders for a token
 export async function GET(
   request: NextRequest,

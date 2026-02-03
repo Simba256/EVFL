@@ -7,6 +7,9 @@ import {
 import { getLeaderboard } from '@/lib/data/leaderboard'
 import type { LeaderboardSortBy } from '@/types'
 
+// Force dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+
 // GET /api/leaderboard - Get token leaderboard
 export async function GET(request: NextRequest) {
   try {
