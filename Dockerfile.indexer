@@ -13,7 +13,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies (including dev for tsx and typescript)
-RUN pnpm install --frozen-lockfile
+# Use --ignore-scripts to skip postinstall prisma generate (schema not copied yet)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy Prisma schema and config
 COPY prisma ./prisma
