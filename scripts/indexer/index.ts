@@ -21,6 +21,15 @@ import { PrismaPg } from '@prisma/adapter-pg'
 // Import Prisma client
 import { PrismaClient, TokenStatus } from '../../lib/generated/prisma'
 
+// Import OHLCV candle update function
+import { updateCandleWithTrade } from '../../lib/db/price-history'
+
+// Import metrics refresh function
+import { refreshAllTokenMetrics } from './refresh-metrics'
+
+// Import health check server
+import { startHealthServer, markHealthy, markUnhealthy } from './health'
+
 // Contract ABIs (event signatures only)
 const TokenCreatedEvent = parseAbiItem(
   'event TokenCreated(address indexed token, address indexed pool, address indexed creator, string name, string symbol, uint256 initialSupply)'
@@ -304,6 +313,7 @@ async function processSwapEvents(
           : '0'
 
         // Create trade in database
+        const tradeTimestamp = new Date(Number(block.timestamp) * 1000)
         await prisma.trade.create({
           data: {
             tokenId: token.id,
@@ -315,12 +325,20 @@ async function processSwapEvents(
             price,
             txHash: log.transactionHash.toLowerCase(),
             blockNumber: log.blockNumber,
-            blockTimestamp: new Date(Number(block.timestamp) * 1000),
+            blockTimestamp: tradeTimestamp,
             logIndex: log.logIndex,
           },
         })
 
-        console.log(`Indexed ${isBuy ? 'buy' : 'sell'} trade: ${formatEther(tokenAmount)} tokens`)
+        // Update OHLCV candles for all intervals
+        await updateCandleWithTrade(
+          token.id,
+          price,
+          formatEther(bnbAmount), // volume in BNB
+          tradeTimestamp
+        )
+
+        console.log(`Indexed ${isBuy ? 'buy' : 'sell'} trade: ${formatEther(tokenAmount)} tokens @ ${price} BNB`)
       }
     }
 
@@ -522,10 +540,20 @@ async function runIndexer(): Promise<void> {
   console.log(`TokenFactory: ${config.tokenFactoryAddress}`)
   console.log(`Poll Interval: ${config.pollInterval}ms`)
 
+  // Start health check server
+  // Railway sets PORT automatically, fall back to HEALTH_PORT or 8080
+  const healthPort = parseInt(process.env.PORT || process.env.HEALTH_PORT || '8080')
+  startHealthServer(healthPort)
+
   // Load existing pools
   await loadExistingPools()
 
+  // Cycle counter for periodic tasks
+  let cycleCount = 0
+  const metricsRefreshInterval = 12 // Refresh every 12 cycles (60s at 5s poll interval)
+
   while (true) {
+    cycleCount++
     try {
       // Get current block
       const currentBlock = await publicClient.getBlockNumber()
@@ -580,9 +608,23 @@ async function runIndexer(): Promise<void> {
         }
       }
 
-      console.log(`Indexer cycle complete. Waiting ${config.pollInterval}ms...`)
+      // Refresh token metrics periodically (every 60s by default)
+      if (cycleCount % metricsRefreshInterval === 0) {
+        console.log('\nRunning periodic metrics refresh...')
+        try {
+          await refreshAllTokenMetrics(prisma)
+        } catch (error) {
+          console.error('Error refreshing metrics:', error)
+        }
+      }
+
+      // Mark indexer as healthy
+      markHealthy(currentBlock, cycleCount)
+
+      console.log(`Indexer cycle ${cycleCount} complete. Waiting ${config.pollInterval}ms...`)
     } catch (error) {
       console.error('Error in indexer loop:', error)
+      markUnhealthy((error as Error).message)
     }
 
     // Wait for next poll
