@@ -32,11 +32,16 @@ const publicClient = createPublicClient({
 })
 
 // Batch size for fetching logs (to avoid RPC limits)
-const BLOCK_BATCH_SIZE = 5000n
+// Ankr allows up to ~3000 blocks per request
+const BLOCK_BATCH_SIZE = 2000n
+
+// Default start block (roughly 30 days ago on BSC testnet ~3s blocks = ~864000 blocks/month)
+// Set to 0 to scan from genesis, but this will take a very long time
+const DEFAULT_START_BLOCK = 87000000n // ~1-2 weeks ago on testnet
 
 interface HolderBalance {
   balance: bigint
-  firstPurchasedAt: Date
+  lastUpdatedBlock: bigint
 }
 
 async function backfillTokenHolders(
@@ -89,16 +94,14 @@ async function backfillTokenHolders(
         const from = (log.args.from as string).toLowerCase()
         const to = (log.args.to as string).toLowerCase()
         const value = log.args.value as bigint
-
-        // Get block timestamp for firstPurchasedAt
-        const block = await publicClient.getBlock({ blockNumber: log.blockNumber })
-        const timestamp = new Date(Number(block.timestamp) * 1000)
+        const blockNumber = log.blockNumber
 
         // Update sender balance (if not mint)
         if (from !== ZERO_ADDRESS) {
           const existing = balances.get(from)
           if (existing) {
             existing.balance -= value
+            existing.lastUpdatedBlock = blockNumber
             if (existing.balance <= 0n) {
               balances.delete(from)
             }
@@ -110,10 +113,11 @@ async function backfillTokenHolders(
           const existing = balances.get(to)
           if (existing) {
             existing.balance += value
+            existing.lastUpdatedBlock = blockNumber
           } else {
             balances.set(to, {
               balance: value,
-              firstPurchasedAt: timestamp,
+              lastUpdatedBlock: blockNumber,
             })
           }
         }
@@ -156,6 +160,8 @@ async function backfillTokenHolders(
         update: {
           balance: data.balance.toString(),
           percentage,
+          lastUpdatedBlock: data.lastUpdatedBlock,
+          lastUpdatedAt: new Date(),
         },
         create: {
           tokenId,
@@ -163,7 +169,7 @@ async function backfillTokenHolders(
           holderAddress,
           balance: data.balance.toString(),
           percentage,
-          firstPurchasedAt: data.firstPurchasedAt,
+          lastUpdatedBlock: data.lastUpdatedBlock,
         },
       })
       savedCount++
@@ -185,23 +191,26 @@ async function backfillTokenHolders(
   console.log(`Saved ${savedCount} holders. Total holder count: ${holdersCount}`)
 
   // Update indexer state so regular indexer continues from here
+  const chainId = 97 // BSC Testnet
   await prisma.indexerState.upsert({
     where: {
-      contractAddress_eventType: {
+      contractAddress_eventType_chainId: {
         contractAddress: tokenAddress.toLowerCase(),
         eventType: 'Transfer',
+        chainId,
       },
     },
     update: {
-      lastBlockNumber: currentBlock,
-      lastUpdatedAt: new Date(),
+      lastIndexedBlock: currentBlock,
+      lastIndexedAt: new Date(),
     },
     create: {
       contractAddress: tokenAddress.toLowerCase(),
       contractType: 'Token',
       eventType: 'Transfer',
-      lastBlockNumber: currentBlock,
-      lastUpdatedAt: new Date(),
+      chainId,
+      lastIndexedBlock: currentBlock,
+      lastIndexedAt: new Date(),
     },
   })
 
@@ -248,7 +257,7 @@ async function main() {
   for (const token of tokens) {
     try {
       // Try to get deploy block from transaction
-      let fromBlock = 0n
+      let fromBlock = DEFAULT_START_BLOCK
       if (token.deployTxHash) {
         try {
           const tx = await publicClient.getTransaction({
@@ -257,8 +266,10 @@ async function main() {
           fromBlock = tx.blockNumber
           console.log(`Found deploy block from tx: ${fromBlock}`)
         } catch {
-          console.log(`Could not get deploy block from tx, starting from block 0`)
+          console.log(`Could not get deploy block from tx, using default: ${DEFAULT_START_BLOCK}`)
         }
+      } else {
+        console.log(`No deploy tx hash, using default start block: ${DEFAULT_START_BLOCK}`)
       }
 
       const holders = await backfillTokenHolders(
