@@ -20,6 +20,7 @@
     "indexer": "npx tsx scripts/indexer/index.ts",
     "indexer:dev": "INDEXER_ENABLED=true npx tsx scripts/indexer/index.ts",
     "refresh-metrics": "npx tsx scripts/indexer/refresh-metrics.ts",
+    "backfill:holders": "npx tsx scripts/indexer/backfill-holders.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
