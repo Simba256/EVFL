@@ -208,16 +208,8 @@ async function main() {
 
       // Check if we need to backfill
       if (existingToken.holdersCount === 0 || existingToken.holdersCount === 1) {
-        // Get deploy block
-        let fromBlock = 85000000n // Default
-        if (existingToken.deployTxHash) {
-          try {
-            const tx = await publicClient.getTransaction({
-              hash: existingToken.deployTxHash as `0x${string}`
-            })
-            fromBlock = tx.blockNumber
-          } catch {}
-        }
+        // Use early block to catch all events
+        const fromBlock = 85000000n
 
         const count = await backfillHoldersForToken(
           tokenAddr,
@@ -260,14 +252,8 @@ async function main() {
 
     console.log(`  Created in database with id: ${token.id}`)
 
-    // Get deploy block from creation timestamp
-    const createdTimestamp = Number(info.createdAt)
-    // Estimate block number (BSC testnet ~3s blocks)
-    const currentBlock = await publicClient.getBlockNumber()
-    const currentTimestamp = Math.floor(Date.now() / 1000)
-    const blocksSinceCreation = BigInt(Math.floor((currentTimestamp - createdTimestamp) / 3))
-    const estimatedDeployBlock = currentBlock - blocksSinceCreation
-    const fromBlock = estimatedDeployBlock > 0n ? estimatedDeployBlock : 85000000n
+    // Use a safe early block to catch all events (block estimation was unreliable)
+    const fromBlock = 85000000n
 
     // Backfill holders
     const count = await backfillHoldersForToken(
