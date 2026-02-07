@@ -23,7 +23,15 @@ function TokenGridSkeleton() {
 
 async function TokenGridWrapper() {
   // Fetch on-chain tokens (now enriched with database metadata)
-  const onChainTokens = await getOnChainTokens()
+  let onChainTokens: Awaited<ReturnType<typeof getOnChainTokens>> = []
+  let fetchError = false
+
+  try {
+    onChainTokens = await getOnChainTokens()
+  } catch (e) {
+    console.error('[TokenGridWrapper] Error:', e)
+    fetchError = true
+  }
 
   // Only show mock tokens if there are no on-chain tokens (for demo purposes)
   let allTokens = onChainTokens
@@ -36,11 +44,16 @@ async function TokenGridWrapper() {
 
   return (
     <>
+      {fetchError && (
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm">
+          Failed to load on-chain tokens. Showing demo tokens instead.
+        </div>
+      )}
       {onChainTokens.length > 0 ? (
         <div className="mb-4 text-sm text-muted-foreground">
           Showing {onChainTokens.length} on-chain token{onChainTokens.length !== 1 ? 's' : ''}
         </div>
-      ) : mockTokens.length > 0 && (
+      ) : mockTokens.length > 0 && !fetchError && (
         <div className="mb-4 text-sm text-muted-foreground">
           Showing {mockTokens.length} demo tokens (no on-chain tokens found)
         </div>

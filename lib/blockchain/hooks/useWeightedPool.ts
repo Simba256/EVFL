@@ -34,54 +34,51 @@ export function useWeightedPool() {
   const addresses = getContractAddresses(effectiveChainId);
 
   // Get pool info
-  const getPoolInfo = useCallback(async (poolAddress: `0x${string}`): Promise<PoolInfo | null> => {
-    if (!publicClient) return null;
-
-    try {
-      const [tokens, balances, weights, swapFee, totalSupply] = await Promise.all([
-        publicClient.readContract({
-          address: poolAddress,
-          abi: WeightedPoolABI,
-          functionName: 'getTokens',
-        }),
-        publicClient.readContract({
-          address: poolAddress,
-          abi: WeightedPoolABI,
-          functionName: 'getBalances',
-        }),
-        publicClient.readContract({
-          address: poolAddress,
-          abi: WeightedPoolABI,
-          functionName: 'getWeights',
-        }),
-        publicClient.readContract({
-          address: poolAddress,
-          abi: WeightedPoolABI,
-          functionName: 'getSwapFee',
-        }),
-        publicClient.readContract({
-          address: poolAddress,
-          abi: WeightedPoolABI,
-          functionName: 'totalSupply',
-        }),
-      ]);
-
-      const tokensArray = tokens as `0x${string}`[];
-      const balancesArray = balances as bigint[];
-      const weightsArray = weights as bigint[];
-
-      return {
-        token0: tokensArray[0],
-        token1: tokensArray[1],
-        balances: [balancesArray[0], balancesArray[1]],
-        weights: [weightsArray[0], weightsArray[1]],
-        swapFee: swapFee as bigint,
-        totalSupply: totalSupply as bigint,
-      };
-    } catch (error) {
-      console.error('Error getting pool info:', error);
-      return null;
+  const getPoolInfo = useCallback(async (poolAddress: `0x${string}`): Promise<PoolInfo> => {
+    if (!publicClient) {
+      throw new Error('Public client not available');
     }
+
+    const [tokens, balances, weights, swapFee, totalSupply] = await Promise.all([
+      publicClient.readContract({
+        address: poolAddress,
+        abi: WeightedPoolABI,
+        functionName: 'getTokens',
+      }),
+      publicClient.readContract({
+        address: poolAddress,
+        abi: WeightedPoolABI,
+        functionName: 'getBalances',
+      }),
+      publicClient.readContract({
+        address: poolAddress,
+        abi: WeightedPoolABI,
+        functionName: 'getWeights',
+      }),
+      publicClient.readContract({
+        address: poolAddress,
+        abi: WeightedPoolABI,
+        functionName: 'getSwapFee',
+      }),
+      publicClient.readContract({
+        address: poolAddress,
+        abi: WeightedPoolABI,
+        functionName: 'totalSupply',
+      }),
+    ]);
+
+    const tokensArray = tokens as `0x${string}`[];
+    const balancesArray = balances as bigint[];
+    const weightsArray = weights as bigint[];
+
+    return {
+      token0: tokensArray[0],
+      token1: tokensArray[1],
+      balances: [balancesArray[0], balancesArray[1]],
+      weights: [weightsArray[0], weightsArray[1]],
+      swapFee: swapFee as bigint,
+      totalSupply: totalSupply as bigint,
+    };
   }, [publicClient]);
 
   // Get spot price
@@ -90,20 +87,17 @@ export function useWeightedPool() {
     tokenIn: `0x${string}`,
     tokenOut: `0x${string}`
   ): Promise<bigint> => {
-    if (!publicClient) return 0n;
-
-    try {
-      const price = await publicClient.readContract({
-        address: poolAddress,
-        abi: WeightedPoolABI,
-        functionName: 'getSpotPrice',
-        args: [tokenIn, tokenOut],
-      });
-      return price as bigint;
-    } catch (error) {
-      console.error('Error getting spot price:', error);
-      return 0n;
+    if (!publicClient) {
+      throw new Error('Public client not available');
     }
+
+    const price = await publicClient.readContract({
+      address: poolAddress,
+      abi: WeightedPoolABI,
+      functionName: 'getSpotPrice',
+      args: [tokenIn, tokenOut],
+    });
+    return price as bigint;
   }, [publicClient]);
 
   // Calculate output amount
@@ -113,20 +107,17 @@ export function useWeightedPool() {
     tokenOut: `0x${string}`,
     amountIn: bigint
   ): Promise<bigint> => {
-    if (!publicClient) return 0n;
-
-    try {
-      const amountOut = await publicClient.readContract({
-        address: poolAddress,
-        abi: WeightedPoolABI,
-        functionName: 'calcOutGivenIn',
-        args: [tokenIn, tokenOut, amountIn],
-      });
-      return amountOut as bigint;
-    } catch (error) {
-      console.error('Error calculating output:', error);
-      return 0n;
+    if (!publicClient) {
+      throw new Error('Public client not available');
     }
+
+    const amountOut = await publicClient.readContract({
+      address: poolAddress,
+      abi: WeightedPoolABI,
+      functionName: 'calcOutGivenIn',
+      args: [tokenIn, tokenOut, amountIn],
+    });
+    return amountOut as bigint;
   }, [publicClient]);
 
   // Execute swap
@@ -204,22 +195,21 @@ export function useWeightedPool() {
     tokenAddress: `0x${string}`,
     userAddress?: `0x${string}`
   ): Promise<bigint> => {
-    if (!publicClient) return 0n;
-    const targetAddress = userAddress || address;
-    if (!targetAddress) return 0n;
-
-    try {
-      const balance = await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20ABI,
-        functionName: 'balanceOf',
-        args: [targetAddress],
-      });
-      return balance as bigint;
-    } catch (error) {
-      console.error('Error getting balance:', error);
-      return 0n;
+    if (!publicClient) {
+      throw new Error('Public client not available');
     }
+    const targetAddress = userAddress || address;
+    if (!targetAddress) {
+      throw new Error('No address provided');
+    }
+
+    const balance = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20ABI,
+      functionName: 'balanceOf',
+      args: [targetAddress],
+    });
+    return balance as bigint;
   }, [publicClient, address]);
 
   return {

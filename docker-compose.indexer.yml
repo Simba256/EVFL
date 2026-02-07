@@ -1,0 +1,44 @@
+# Docker Compose for local testing of the indexer
+# Usage: docker-compose -f docker-compose.indexer.yml up --build
+
+services:
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile.indexer
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - INDEXER_ENABLED=true
+      - INDEXER_POLL_INTERVAL=5000
+      - INDEXER_START_BLOCK=${INDEXER_START_BLOCK:-0}
+      - NEXT_PUBLIC_BSC_TESTNET_RPC_URL=${NEXT_PUBLIC_BSC_TESTNET_RPC_URL:-https://data-seed-prebsc-1-s1.bnbchain.org:8545}
+      - NEXT_PUBLIC_BSC_TESTNET_CHAIN_ID=${NEXT_PUBLIC_BSC_TESTNET_CHAIN_ID:-97}
+      - NEXT_PUBLIC_TOKEN_FACTORY_ADDRESS_TESTNET=${NEXT_PUBLIC_TOKEN_FACTORY_ADDRESS_TESTNET}
+      - NEXT_PUBLIC_WBNB_ADDRESS_TESTNET=${NEXT_PUBLIC_WBNB_ADDRESS_TESTNET}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Run metrics refresh as a separate service on a schedule
+  # Uncomment if you prefer to run metrics refresh separately from the indexer
+  # metrics-refresh:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.indexer
+  #   environment:
+  #     - DATABASE_URL=${DATABASE_URL}
+  #   command: ["npx", "tsx", "scripts/indexer/refresh-metrics.ts"]
+  #   restart: "no"
+  #   profiles:
+  #     - metrics

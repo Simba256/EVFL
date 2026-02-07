@@ -10,6 +10,7 @@ import { useAccount } from "wagmi"
 import { formatEther, parseEther, formatUnits } from "viem"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { formatSubscriptNumber } from "@/lib/utils/format"
+import { toast } from "sonner"
 
 interface TradingPanelProps {
   tokenAddress: `0x${string}`
@@ -50,6 +51,7 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
         setUserTokenBalance(tokenBal)
       } catch (e) {
         console.error('Error fetching balances:', e)
+        toast.error('Failed to load balances')
       }
     }
 
@@ -109,6 +111,12 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
       setTxHash(result.txHash)
       setInputAmount("")
       setOutputAmount("")
+      toast.success('Swap successful!', {
+        action: {
+          label: 'View',
+          onClick: () => window.open(`https://testnet.bscscan.com/tx/${result.txHash}`, '_blank'),
+        },
+      })
 
       // Refresh balances
       const [bnbBal, tokenBal] = await Promise.all([
@@ -120,6 +128,9 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
     } catch (e: any) {
       console.error('Swap error:', e)
       setError(e.message || 'Swap failed')
+      toast.error('Swap failed', {
+        description: e.message || 'An unexpected error occurred',
+      })
     } finally {
       setIsLoading(false)
     }

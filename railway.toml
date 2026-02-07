@@ -1,0 +1,25 @@
+# Railway Configuration for Indexer Deployment
+# Documentation: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.indexer"
+
+[deploy]
+# Restart policy
+restartPolicyType = "always"
+restartPolicyMaxRetries = 5
+
+# Health check configuration
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+
+# Resource limits (adjust based on your plan)
+# numReplicas = 1
+
+[env]
+# These can be overridden in Railway dashboard
+INDEXER_ENABLED = "true"
+INDEXER_POLL_INTERVAL = "5000"
+NODE_ENV = "production"
+HEALTH_PORT = "8080"
