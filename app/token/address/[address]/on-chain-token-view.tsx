@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { TradingPanel } from "@/components/trading-panel"
+import { PriceChart } from "@/components/price-chart"
+import { TradeHistory } from "@/components/trade-history"
 import { ArrowLeft, Users, BarChart3, Clock, ExternalLink, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { formatEther } from "viem"
@@ -197,8 +199,14 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Info */}
+        {/* Left Column - Chart & Info */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Price Chart */}
+          <PriceChart
+            tokenAddress={tokenData.token}
+            tokenSymbol={tokenData.symbol}
+          />
+
           {/* Contract Info */}
           <Card className="border-glow-animated glass-morph p-6 scanlines">
             <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "var(--font-heading)" }}>
@@ -291,6 +299,11 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
             poolAddress={tokenData.pool}
             tokenSymbol={tokenData.symbol}
             tokenName={tokenData.name}
+          />
+
+          <TradeHistory
+            tokenAddress={tokenData.token}
+            tokenSymbol={tokenData.symbol}
           />
         </div>
       </div>
