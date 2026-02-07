@@ -114,7 +114,7 @@ export async function getOnChainTokens(): Promise<Token[]> {
             if (dbToken) {
               dbImage = dbToken.image || '';
               dbDescription = dbToken.description || '';
-              dbHolders = dbToken.holdersCount ?? 1;
+              dbHolders = dbToken.holders ?? 1;
               dbChange24h = dbToken.change24h ? Number(dbToken.change24h) : 0;
               if (dbToken.volume24h) {
                 dbVolume24h = `${Number(dbToken.volume24h).toFixed(4)} BNB`;
