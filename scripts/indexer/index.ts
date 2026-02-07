@@ -13,7 +13,7 @@
  */
 
 import 'dotenv/config'
-import { createPublicClient, http, parseAbiItem, formatEther, type Address, type Log } from 'viem'
+import { createPublicClient, http, fallback, parseAbiItem, formatEther, type Address, type Log } from 'viem'
 import { bscTestnet, bsc } from 'viem/chains'
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -43,13 +43,22 @@ const TransferEvent = parseAbiItem(
   'event Transfer(address indexed from, address indexed to, uint256 value)'
 )
 
+// BSC Testnet RPC endpoints (fallback order)
+const BSC_TESTNET_RPCS = [
+  process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.bnbchain.org:8545',
+  'https://data-seed-prebsc-2-s1.bnbchain.org:8545',
+  'https://data-seed-prebsc-1-s2.bnbchain.org:8545',
+  'https://data-seed-prebsc-2-s2.bnbchain.org:8545',
+  'https://bsc-testnet-rpc.publicnode.com',
+].filter(Boolean) as string[]
+
 // Configuration
 const config = {
   chainId: parseInt(process.env.NEXT_PUBLIC_BSC_TESTNET_CHAIN_ID || '97'),
-  rpcUrl: process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.bnbchain.org:8545',
+  rpcUrls: BSC_TESTNET_RPCS,
   tokenFactoryAddress: process.env.NEXT_PUBLIC_TOKEN_FACTORY_ADDRESS_TESTNET as Address,
   wbnbAddress: process.env.NEXT_PUBLIC_WBNB_ADDRESS_TESTNET as Address,
-  pollInterval: parseInt(process.env.INDEXER_POLL_INTERVAL || '5000'),
+  pollInterval: parseInt(process.env.INDEXER_POLL_INTERVAL || '10000'), // Default 10s instead of 5s
   startBlock: BigInt(process.env.INDEXER_START_BLOCK || '0'),
   enabled: process.env.INDEXER_ENABLED === 'true',
 }
@@ -63,11 +72,20 @@ const pool = new Pool({ connectionString })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
-// Initialize viem client
+// Initialize viem client with fallback RPCs
 const publicClient = createPublicClient({
   chain: config.chainId === 97 ? bscTestnet : bsc,
-  transport: http(config.rpcUrl),
+  transport: fallback(
+    config.rpcUrls.map(url => http(url, {
+      timeout: 10000,
+      retryCount: 2,
+      retryDelay: 1000,
+    })),
+    { rank: true } // Auto-rank RPCs by latency
+  ),
 })
+
+console.log(`Configured ${config.rpcUrls.length} RPC endpoints with fallback`)
 
 // Track indexed pools for Swap event monitoring
 const indexedPools: Set<string> = new Set()
