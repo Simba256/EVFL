@@ -21,6 +21,8 @@
     "indexer:dev": "INDEXER_ENABLED=true npx tsx scripts/indexer/index.ts",
     "refresh-metrics": "npx tsx scripts/indexer/refresh-metrics.ts",
     "backfill:holders": "npx tsx scripts/indexer/backfill-holders.ts",
+    "sync:tokens": "npx tsx scripts/indexer/sync-tokens.ts",
+    "seed:trades": "npx tsx scripts/indexer/seed-test-trades.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
