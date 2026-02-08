@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { TradingPanel } from "@/components/trading-panel"
 import { PriceChart } from "@/components/price-chart"
@@ -34,6 +34,33 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Function to refresh pool balances only (no loading state)
+  const refreshPoolBalances = useCallback(async (poolAddress: `0x${string}`) => {
+    try {
+      const [balances, weights] = await Promise.all([
+        bscTestnetClient.readContract({
+          address: poolAddress,
+          abi: WeightedPoolABI,
+          functionName: 'getBalances',
+        }),
+        bscTestnetClient.readContract({
+          address: poolAddress,
+          abi: WeightedPoolABI,
+          functionName: 'getWeights',
+        }),
+      ])
+
+      setTokenData(prev => prev ? {
+        ...prev,
+        poolBalances: balances as [bigint, bigint],
+        poolWeights: weights as [bigint, bigint],
+      } : null)
+    } catch (e) {
+      console.error("Error refreshing pool balances:", e)
+    }
+  }, [])
+
+  // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -99,6 +126,19 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
 
     fetchData()
   }, [tokenAddress])
+
+  // Poll pool balances every 10 seconds
+  useEffect(() => {
+    if (!tokenData?.pool || tokenData.pool === '0x0000000000000000000000000000000000000000') {
+      return
+    }
+
+    const interval = setInterval(() => {
+      refreshPoolBalances(tokenData.pool)
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [tokenData?.pool, refreshPoolBalances])
 
   if (isLoading) {
     return (
