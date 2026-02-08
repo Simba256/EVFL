@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Card } from "@/components/ui/card"
-import { Loader2, TrendingUp, TrendingDown } from "lucide-react"
+import { Loader2, TrendingUp, TrendingDown, BarChart2, LineChart } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -10,6 +10,9 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Customized,
 } from "recharts"
 
 interface PriceChartProps {
@@ -27,6 +30,7 @@ interface Candle {
 }
 
 type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d"
+type ChartType = "area" | "candle"
 
 const INTERVALS: { label: string; value: Interval }[] = [
   { label: "1M", value: "1m" },
@@ -37,16 +41,82 @@ const INTERVALS: { label: string; value: Interval }[] = [
   { label: "1D", value: "1d" },
 ]
 
+// Custom candlestick renderer
+const Candlesticks = (props: any) => {
+  const { formattedGraphicalItems, xAxisMap, yAxisMap } = props
+
+  if (!formattedGraphicalItems || !xAxisMap || !yAxisMap) return null
+
+  const xAxis = Object.values(xAxisMap)[0] as any
+  const yAxis = Object.values(yAxisMap)[0] as any
+
+  if (!xAxis?.scale || !yAxis?.scale) return null
+
+  const barItems = formattedGraphicalItems.find((item: any) => item?.item?.type?.displayName === 'Bar')
+  if (!barItems?.props?.data) return null
+
+  const data = barItems.props.data
+  const bandWidth = xAxis.bandSize || (xAxis.width / data.length)
+
+  return (
+    <g className="candlesticks">
+      {data.map((entry: any, index: number) => {
+        const { open, high, low, close } = entry
+
+        const x = xAxis.scale(entry.time) ?? (xAxis.x + index * bandWidth + bandWidth / 2)
+        const highY = yAxis.scale(high)
+        const lowY = yAxis.scale(low)
+        const openY = yAxis.scale(open)
+        const closeY = yAxis.scale(close)
+
+        const isGreen = close >= open
+        const color = isGreen ? "#00ff88" : "#ff4444"
+
+        const bodyTop = Math.min(openY, closeY)
+        const bodyHeight = Math.max(Math.abs(closeY - openY), 2)
+        const candleWidth = Math.max(bandWidth * 0.6, 6)
+
+        return (
+          <g key={`candle-${index}`}>
+            {/* Wick */}
+            <line
+              x1={x}
+              y1={highY}
+              x2={x}
+              y2={lowY}
+              stroke={color}
+              strokeWidth={1.5}
+              style={{ filter: "drop-shadow(0 0 3px " + color + ")" }}
+            />
+            {/* Body */}
+            <rect
+              x={x - candleWidth / 2}
+              y={bodyTop}
+              width={candleWidth}
+              height={bodyHeight}
+              fill={isGreen ? color : "#1a1a2e"}
+              stroke={color}
+              strokeWidth={1.5}
+              rx={1}
+              style={{ filter: "drop-shadow(0 0 3px " + color + ")" }}
+            />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
 export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
   const [candles, setCandles] = useState<Candle[]>([])
   const [interval, setInterval] = useState<Interval>("1h")
+  const [chartType, setChartType] = useState<ChartType>("area")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const isInitialLoad = useRef(true)
 
   useEffect(() => {
     const fetchPriceHistory = async () => {
-      // Only show loading on initial load, keep existing chart visible otherwise
       if (isInitialLoad.current) {
         setIsLoading(true)
       }
@@ -59,7 +129,6 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
         const data = await res.json()
 
         if (data.error) {
-          // Only show error if we have no existing data
           if (candles.length === 0) {
             setError(data.error)
           }
@@ -68,7 +137,6 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
         }
       } catch (e) {
         console.error("Error fetching price history:", e)
-        // Only show error if we have no existing data
         if (candles.length === 0) {
           setError("Failed to load price data")
         }
@@ -81,7 +149,6 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
     fetchPriceHistory()
   }, [tokenAddress, interval])
 
-  // Calculate price change
   const priceChange =
     candles.length >= 2
       ? ((candles[candles.length - 1].close - candles[0].open) / candles[0].open) * 100
@@ -90,17 +157,36 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
   const isPositive = priceChange >= 0
   const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : 0
 
-  // Format data for chart
-  const chartData = candles.map((c) => ({
+  const areaChartData = useMemo(() => candles.map((c) => ({
     time: new Date(c.timestamp).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     }),
     price: c.close,
     volume: c.volume,
-  }))
+  })), [candles])
 
-  // Format price for display
+  const candleChartData = useMemo(() => candles.map((c) => ({
+    time: new Date(c.timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+    volume: c.volume,
+    range: [c.low, c.high],
+  })), [candles])
+
+  const [priceMin, priceMax] = useMemo(() => {
+    if (candles.length === 0) return [0, 1]
+    const min = Math.min(...candles.map(c => c.low))
+    const max = Math.max(...candles.map(c => c.high))
+    const padding = (max - min) * 0.05
+    return [min - padding, max + padding]
+  }, [candles])
+
   const formatPrice = (price: number) => {
     if (price < 0.00001) {
       return price.toExponential(4)
@@ -108,10 +194,33 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
     return price.toFixed(8)
   }
 
+  const CandleTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload[0]) return null
+    const data = payload[0].payload
+    const isUp = data.close >= data.open
+    return (
+      <div className="bg-background/95 backdrop-blur border border-border rounded-lg p-3 shadow-xl">
+        <p className="text-xs text-muted-foreground mb-2">{label}</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+          <span className="text-muted-foreground">Open:</span>
+          <span className="font-mono text-right">{formatPrice(data.open)}</span>
+          <span className="text-muted-foreground">High:</span>
+          <span className="font-mono text-right text-green-400">{formatPrice(data.high)}</span>
+          <span className="text-muted-foreground">Low:</span>
+          <span className="font-mono text-right text-red-400">{formatPrice(data.low)}</span>
+          <span className="text-muted-foreground">Close:</span>
+          <span className={`font-mono text-right ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+            {formatPrice(data.close)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card className="border-glow-animated glass-morph p-6 scanlines">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
             {tokenSymbol} Price
@@ -138,21 +247,49 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
           )}
         </div>
 
-        {/* Interval selector */}
-        <div className="flex gap-1 bg-background/50 rounded-lg p-1">
-          {INTERVALS.map((i) => (
+        <div className="flex items-center gap-2">
+          {/* Chart type toggle */}
+          <div className="flex gap-1 bg-background/50 rounded-lg p-1">
             <button
-              key={i.value}
-              onClick={() => setInterval(i.value)}
-              className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
-                interval === i.value
+              onClick={() => setChartType("area")}
+              className={`p-1.5 rounded transition-colors ${
+                chartType === "area"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
+              title="Area Chart"
             >
-              {i.label}
+              <LineChart className="h-4 w-4" />
             </button>
-          ))}
+            <button
+              onClick={() => setChartType("candle")}
+              className={`p-1.5 rounded transition-colors ${
+                chartType === "candle"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Candlestick Chart"
+            >
+              <BarChart2 className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Interval selector */}
+          <div className="flex gap-1 bg-background/50 rounded-lg p-1">
+            {INTERVALS.map((i) => (
+              <button
+                key={i.value}
+                onClick={() => setInterval(i.value)}
+                className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                  interval === i.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {i.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -170,9 +307,9 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
           <div className="h-full flex items-center justify-center text-muted-foreground">
             No price data available
           </div>
-        ) : (
+        ) : chartType === "area" ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={areaChartData}>
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop
@@ -191,7 +328,6 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
                     stopOpacity={0.05}
                   />
                 </linearGradient>
-                {/* Glow filter for the line */}
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                   <feMerge>
@@ -233,6 +369,31 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
                 filter="url(#glow)"
               />
             </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={candleChartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
+              <XAxis
+                dataKey="time"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                interval="preserveStartEnd"
+                type="category"
+              />
+              <YAxis
+                domain={[priceMin, priceMax]}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                tickFormatter={(v) => v.toExponential(1)}
+                width={60}
+              />
+              <Tooltip content={<CandleTooltip />} />
+              {/* Invisible bar just to make the chart work with Customized */}
+              <Bar dataKey="high" fill="transparent" />
+              <Customized component={Candlesticks} />
+            </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>
