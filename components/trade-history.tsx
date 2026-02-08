@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
@@ -22,10 +22,14 @@ export function TradeHistory({ tokenAddress, tokenSymbol }: TradeHistoryProps) {
   const [trades, setTrades] = useState<Trade[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const isInitialLoad = useRef(true)
 
   useEffect(() => {
     const fetchTrades = async () => {
-      setIsLoading(true)
+      // Only show loading spinner on initial load
+      if (isInitialLoad.current) {
+        setIsLoading(true)
+      }
       setError("")
 
       try {
@@ -33,17 +37,22 @@ export function TradeHistory({ tokenAddress, tokenSymbol }: TradeHistoryProps) {
         const data = await res.json()
 
         if (data.error) {
-          setError(data.error)
-          setTrades([])
+          // Only show error if we have no existing trades
+          if (trades.length === 0) {
+            setError(data.error)
+          }
         } else {
           setTrades(data.trades || [])
         }
       } catch (e) {
         console.error("Error fetching trades:", e)
-        setError("Failed to load trades")
-        setTrades([])
+        // Only show error if we have no existing trades
+        if (trades.length === 0) {
+          setError("Failed to load trades")
+        }
       } finally {
         setIsLoading(false)
+        isInitialLoad.current = false
       }
     }
 

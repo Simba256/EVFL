@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react"
 import {
@@ -42,10 +42,14 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
   const [interval, setInterval] = useState<Interval>("1h")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const isInitialLoad = useRef(true)
 
   useEffect(() => {
     const fetchPriceHistory = async () => {
-      setIsLoading(true)
+      // Only show loading on initial load, keep existing chart visible otherwise
+      if (isInitialLoad.current) {
+        setIsLoading(true)
+      }
       setError("")
 
       try {
@@ -55,17 +59,22 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
         const data = await res.json()
 
         if (data.error) {
-          setError(data.error)
-          setCandles([])
+          // Only show error if we have no existing data
+          if (candles.length === 0) {
+            setError(data.error)
+          }
         } else {
           setCandles(data.candles || [])
         }
       } catch (e) {
         console.error("Error fetching price history:", e)
-        setError("Failed to load price data")
-        setCandles([])
+        // Only show error if we have no existing data
+        if (candles.length === 0) {
+          setError("Failed to load price data")
+        }
       } finally {
         setIsLoading(false)
+        isInitialLoad.current = false
       }
     }
 
