@@ -176,16 +176,29 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop
-                    offset="5%"
-                    stopColor={isPositive ? "hsl(var(--chart-2))" : "hsl(var(--destructive))"}
-                    stopOpacity={0.3}
+                    offset="0%"
+                    stopColor={isPositive ? "#00ff88" : "#ff4444"}
+                    stopOpacity={0.5}
                   />
                   <stop
-                    offset="95%"
-                    stopColor={isPositive ? "hsl(var(--chart-2))" : "hsl(var(--destructive))"}
-                    stopOpacity={0}
+                    offset="50%"
+                    stopColor={isPositive ? "#00ff88" : "#ff4444"}
+                    stopOpacity={0.2}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={isPositive ? "#00ff88" : "#ff4444"}
+                    stopOpacity={0.05}
                   />
                 </linearGradient>
+                {/* Glow filter for the line */}
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
               </defs>
               <XAxis
                 dataKey="time"
@@ -214,9 +227,10 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
               <Area
                 type="monotone"
                 dataKey="price"
-                stroke={isPositive ? "hsl(var(--chart-2))" : "hsl(var(--destructive))"}
-                strokeWidth={2}
+                stroke={isPositive ? "#00ff88" : "#ff4444"}
+                strokeWidth={2.5}
                 fill="url(#priceGradient)"
+                filter="url(#glow)"
               />
             </AreaChart>
           </ResponsiveContainer>
