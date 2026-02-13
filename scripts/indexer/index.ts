@@ -71,6 +71,8 @@ const config = {
   wbnbAddress: process.env.NEXT_PUBLIC_WBNB_ADDRESS_TESTNET as Address,
   pollInterval: parseInt(process.env.INDEXER_POLL_INTERVAL || '10000'), // Default 10s instead of 5s
   startBlock: BigInt(process.env.INDEXER_START_BLOCK || '0'),
+  // Fair Launch factory was deployed on 2026-02-12, use a recent start block
+  fairLaunchStartBlock: BigInt(process.env.FAIR_LAUNCH_START_BLOCK || '90100000'),
   enabled: process.env.INDEXER_ENABLED === 'true',
 }
 
@@ -649,7 +651,7 @@ async function runIndexer(): Promise<void> {
           prisma,
           config.fairLaunchFactoryAddress,
           config.chainId,
-          config.startBlock
+          config.fairLaunchStartBlock
         )
         if (currentBlock > lastFairLaunchBlock) {
           await processFairLaunchCreatedEvents(
@@ -659,7 +661,7 @@ async function runIndexer(): Promise<void> {
             config.chainId,
             lastFairLaunchBlock + 1n,
             currentBlock,
-            config.startBlock
+            config.fairLaunchStartBlock
           )
         }
       }
@@ -672,7 +674,7 @@ async function runIndexer(): Promise<void> {
           icoAddress,
           'Committed',
           config.chainId,
-          config.startBlock
+          config.fairLaunchStartBlock
         )
 
         if (currentBlock > lastCommittedBlock) {
