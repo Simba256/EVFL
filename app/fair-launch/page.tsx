@@ -8,21 +8,19 @@ export const dynamic = 'force-dynamic'
 
 async function getFairLaunches(status?: string): Promise<{ fairLaunches: FairLaunchData[], total: number }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const url = status
-      ? `${baseUrl}/api/fair-launches?status=${status}&limit=50`
-      : `${baseUrl}/api/fair-launches?limit=50`
+    // Use direct database query for server components (more reliable than API fetch)
+    const { getFairLaunches: dbGetFairLaunches, getActiveFairLaunches, searchFairLaunches } = await import('@/lib/db/fair-launch')
 
-    const response = await fetch(url, {
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      console.error('Failed to fetch fair launches:', response.status)
-      return { fairLaunches: [], total: 0 }
+    if (status === 'active') {
+      return getActiveFairLaunches(0, 50)
     }
 
-    return response.json()
+    const validStatuses = ['PENDING', 'ACTIVE', 'FINALIZED', 'FAILED'] as const
+    if (status && validStatuses.includes(status as typeof validStatuses[number])) {
+      return dbGetFairLaunches(0, 50, status as typeof validStatuses[number])
+    }
+
+    return dbGetFairLaunches(0, 50)
   } catch (error) {
     console.error('Error fetching fair launches:', error)
     return { fairLaunches: [], total: 0 }
@@ -31,13 +29,8 @@ async function getFairLaunches(status?: string): Promise<{ fairLaunches: FairLau
 
 async function getStats() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/fair-launches?stats=true`, {
-      cache: 'no-store',
-    })
-
-    if (!response.ok) return null
-    return response.json()
+    const { getFairLaunchStats } = await import('@/lib/db/fair-launch')
+    return getFairLaunchStats()
   } catch {
     return null
   }
