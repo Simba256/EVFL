@@ -10,17 +10,8 @@ export const dynamic = 'force-dynamic'
 
 async function getFairLaunch(address: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/fair-launches/${address}`, {
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      if (response.status === 404) return null
-      throw new Error('Failed to fetch fair launch')
-    }
-
-    return response.json()
+    const { getFairLaunchByAddress } = await import('@/lib/db/fair-launch')
+    return getFairLaunchByAddress(address)
   } catch (error) {
     console.error('Error fetching fair launch:', error)
     return null
@@ -29,13 +20,8 @@ async function getFairLaunch(address: string) {
 
 async function getCommitments(address: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/fair-launches/${address}/commitments?limit=100`, {
-      cache: 'no-store',
-    })
-
-    if (!response.ok) return { commitments: [], total: 0 }
-    return response.json()
+    const { getCommitments: dbGetCommitments } = await import('@/lib/db/fair-launch')
+    return dbGetCommitments(address, 0, 100)
   } catch {
     return { commitments: [], total: 0 }
   }
