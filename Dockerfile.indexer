@@ -28,6 +28,9 @@ COPY scripts/indexer ./scripts/indexer
 COPY lib ./lib
 COPY tsconfig.json ./
 
+# Make entrypoint executable
+RUN chmod +x scripts/indexer/entrypoint.sh
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 indexer
@@ -45,5 +48,5 @@ ENV INDEXER_ENABLED=true
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# Run the indexer
-CMD ["pnpm", "exec", "tsx", "scripts/indexer/index.ts"]
+# Run the indexer with migrations
+CMD ["sh", "scripts/indexer/entrypoint.sh"]
