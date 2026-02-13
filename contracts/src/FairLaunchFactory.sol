@@ -29,6 +29,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
 
     // ============ External Contracts ============
     address public immutable quoteToken; // WBNB
+    address public pancakeRouter; // PancakeSwap Router for LP creation
 
     // ============ Tracking ============
     address[] public allICOs;
@@ -69,6 +70,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
     );
     event PlatformFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
     event FeesWithdrawn(address indexed to, uint256 amount);
+    event RouterUpdated(address indexed oldRouter, address indexed newRouter);
 
     // ============ Errors ============
     error InvalidName();
@@ -78,14 +80,16 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
     error InvalidDuration();
     error InvalidTeamAllocation();
     error InvalidTeamWallet();
+    error InvalidLPConfig();
     error TransferFailed();
     error ZeroAddress();
     error NoFeesToWithdraw();
 
     // ============ Constructor ============
-    constructor(address _quoteToken) Ownable(msg.sender) {
+    constructor(address _quoteToken, address _pancakeRouter) Ownable(msg.sender) {
         if (_quoteToken == address(0)) revert ZeroAddress();
         quoteToken = _quoteToken;
+        pancakeRouter = _pancakeRouter; // Can be 0 initially
     }
 
     // ============ Launch Parameters Struct ============
@@ -110,6 +114,10 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
 
         // Treasury owner (should be a multisig or timelock - deployed separately)
         address treasuryOwner;
+
+        // Liquidity Pool (optional)
+        uint256 lpBnbBps;          // % of raised BNB for LP (0-5000, max 50%)
+        uint256 lpTokensBps;       // % of tokens reserved for LP (0-5000, max 50%)
     }
 
     // ============ Main Function ============
@@ -140,10 +148,21 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         if (params.teamTokensBps > 0 && params.teamWallet == address(0)) {
             revert InvalidTeamWallet();
         }
+        // LP validation: max 50% each, and if one is set, both must be set
+        if (params.lpBnbBps > 5000 || params.lpTokensBps > 5000) {
+            revert InvalidLPConfig();
+        }
+        if ((params.lpBnbBps > 0) != (params.lpTokensBps > 0)) {
+            revert InvalidLPConfig(); // Both must be set or both must be 0
+        }
+        if (params.lpBnbBps > 0 && pancakeRouter == address(0)) {
+            revert InvalidLPConfig(); // Router must be set for LP creation
+        }
 
         // ============ Calculate Token Distribution ============
         uint256 teamTokens = (params.tokenSupply * params.teamTokensBps) / 10000;
-        uint256 totalSupply = params.tokenSupply + teamTokens;
+        uint256 lpTokens = (params.tokenSupply * params.lpTokensBps) / 10000;
+        uint256 totalSupply = params.tokenSupply + teamTokens + lpTokens;
 
         // ============ 1. Deploy Token ============
         LaunchToken newToken = new LaunchToken(
@@ -174,23 +193,29 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         uint256 endTime = startTime + params.icoDuration;
 
         ICOContract newICO = new ICOContract(
-            token,
-            treasury,
-            address(this),
-            params.tokenSupply, // ICO tokens (excludes team)
-            params.minimumRaise,
-            startTime,
-            endTime,
-            platformFeeBps,
-            teamTokens,
-            params.teamWallet
+            ICOContract.ICOConfig({
+                token: token,
+                treasury: treasury,
+                factory: address(this),
+                tokenSupply: params.tokenSupply,
+                minimumRaise: params.minimumRaise,
+                startTime: startTime,
+                endTime: endTime,
+                platformFeeBps: platformFeeBps,
+                teamTokens: teamTokens,
+                teamWallet: params.teamWallet,
+                router: pancakeRouter,
+                lpBnbBps: params.lpBnbBps,
+                lpTokens: lpTokens
+            })
         );
         ico = address(newICO);
 
         // ============ 5. Transfer Tokens ============
         // Tokens were minted to this factory, now distribute them
-        // ICO tokens to ICO contract
-        IERC20(token).transfer(ico, params.tokenSupply);
+        // ICO tokens + LP tokens to ICO contract
+        uint256 icoTotalTokens = params.tokenSupply + lpTokens;
+        IERC20(token).transfer(ico, icoTotalTokens);
 
         // Team tokens to treasury (locked)
         if (teamTokens > 0) {
@@ -245,6 +270,16 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         uint256 oldFee = platformFeeBps;
         platformFeeBps = newFeeBps;
         emit PlatformFeeUpdated(oldFee, newFeeBps);
+    }
+
+    /**
+     * @notice Update PancakeSwap router address
+     * @param newRouter New router address
+     */
+    function setPancakeRouter(address newRouter) external onlyOwner {
+        address oldRouter = pancakeRouter;
+        pancakeRouter = newRouter;
+        emit RouterUpdated(oldRouter, newRouter);
     }
 
     /**

@@ -47,12 +47,15 @@ export function FairLaunchForm() {
   const [tokenSymbol, setTokenSymbol] = useState("")
   const [description, setDescription] = useState("")
   const [tokenSupply, setTokenSupply] = useState("10000000") // 10M default
-  const [minimumRaise, setMinimumRaise] = useState("10") // 10 BNB default
+  const [minimumRaise, setMinimumRaise] = useState("1") // 1 BNB default
   const [icoDuration, setIcoDuration] = useState("7") // 7 days default
   const [teamPercent, setTeamPercent] = useState("0")
   const [teamWallet, setTeamWallet] = useState("")
   const [monthlyBudget, setMonthlyBudget] = useState("")
   const [treasuryOwner, setTreasuryOwner] = useState("")
+  const [enableLP, setEnableLP] = useState(true)
+  const [lpBnbPercent, setLpBnbPercent] = useState("30") // 30% of raised BNB for LP
+  const [lpTokensPercent, setLpTokensPercent] = useState("30") // 30% of supply for LP
 
   // Image upload state
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -143,8 +146,8 @@ export function FairLaunchForm() {
       return
     }
 
-    if (raiseNum < 10) {
-      setError("Minimum raise is 10 BNB")
+    if (raiseNum < 0.1) {
+      setError("Minimum raise is 0.1 BNB")
       return
     }
 
@@ -205,6 +208,8 @@ export function FairLaunchForm() {
         teamWallet: teamNum > 0 ? teamWallet : undefined,
         monthlyBudget: monthlyBudget || undefined,
         treasuryOwner: treasuryOwner || undefined,
+        lpBnbPercent: enableLP ? parseInt(lpBnbPercent) : 0,
+        lpTokensPercent: enableLP ? parseInt(lpTokensPercent) : 0,
       })
 
       setTxHash(result.txHash)
@@ -224,12 +229,15 @@ export function FairLaunchForm() {
     setTokenSymbol("")
     setDescription("")
     setTokenSupply("10000000")
-    setMinimumRaise("10")
+    setMinimumRaise("1")
     setIcoDuration("7")
     setTeamPercent("0")
     setTeamWallet("")
     setMonthlyBudget("")
     setTreasuryOwner("")
+    setEnableLP(true)
+    setLpBnbPercent("30")
+    setLpTokensPercent("30")
     handleRemoveImage()
   }
 
@@ -411,14 +419,14 @@ export function FairLaunchForm() {
                 id="raise"
                 type="number"
                 step="0.1"
-                placeholder="10"
+                placeholder="1"
                 value={minimumRaise}
                 onChange={(e) => setMinimumRaise(e.target.value)}
                 className="bg-background border-border font-mono"
-                min="10"
+                min="0.1"
                 disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">Min: 10 BNB</p>
+              <p className="text-xs text-muted-foreground">Min: 0.1 BNB</p>
             </div>
           </div>
 
@@ -528,6 +536,89 @@ export function FairLaunchForm() {
           <p className="text-xs text-muted-foreground">
             Treasury owner should be a multisig or timelock for security. You can transfer ownership later.
           </p>
+        </div>
+
+        {/* Liquidity Pool Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+              Liquidity Pool (Recommended)
+            </h3>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableLP}
+                onChange={(e) => setEnableLP(e.target.checked)}
+                className="sr-only peer"
+                disabled={isLoading}
+              />
+              <div className="w-11 h-6 bg-background border border-border rounded-full peer peer-checked:bg-primary/20 peer-checked:border-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-muted-foreground after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-primary"></div>
+            </label>
+          </div>
+
+          {enableLP && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Automatically create a PancakeSwap liquidity pool when the ICO finalizes successfully.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lpBnb" className="text-foreground font-semibold">
+                    BNB for LP: {lpBnbPercent}%
+                  </Label>
+                  <input
+                    id="lpBnb"
+                    type="range"
+                    min="10"
+                    max="50"
+                    value={lpBnbPercent}
+                    onChange={(e) => setLpBnbPercent(e.target.value)}
+                    className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
+                    disabled={isLoading}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>10%</span>
+                    <span>30%</span>
+                    <span>50%</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lpTokens" className="text-foreground font-semibold">
+                    Tokens for LP: {lpTokensPercent}%
+                  </Label>
+                  <input
+                    id="lpTokens"
+                    type="range"
+                    min="10"
+                    max="50"
+                    value={lpTokensPercent}
+                    onChange={(e) => setLpTokensPercent(e.target.value)}
+                    className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
+                    disabled={isLoading}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>10%</span>
+                    <span>30%</span>
+                    <span>50%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">{lpBnbPercent}%</strong> of raised BNB +{' '}
+                  <strong className="text-foreground">{lpTokensPercent}%</strong> of tokens will be added as liquidity.
+                  LP tokens will be sent to the treasury.
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Error */}

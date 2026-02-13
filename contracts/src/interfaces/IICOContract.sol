@@ -30,6 +30,7 @@ interface IICOContract {
     event TokensClaimed(address indexed user, uint256 allocation);
     event Refunded(address indexed user, uint256 amount);
     event ICOFailed(uint256 totalCommitted, uint256 minimumRequired);
+    event LiquidityAdded(uint256 tokenAmount, uint256 bnbAmount, uint256 liquidity);
 
     // Core functions
     function commit() external payable;

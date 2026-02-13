@@ -5,11 +5,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IICOContract.sol";
+import "./interfaces/IPancakeRouter.sol";
 
 /**
  * @title ICOContract
  * @notice Fair Launch ICO - accepts commitments, distributes tokens pro-rata
  * @dev Gas-optimized: no loops in finalize(), allocations calculated at claim time
+ *      Supports automatic LP creation on finalization
  */
 contract ICOContract is IICOContract, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -27,6 +29,11 @@ contract ICOContract is IICOContract, ReentrancyGuard {
     // Optional team tokens
     uint256 public immutable teamTokens;
     address public immutable teamWallet;
+
+    // LP Creation Config
+    address public immutable router; // PancakeSwap router
+    uint256 public immutable lpBnbBps; // % of raised BNB for LP (basis points)
+    uint256 public immutable lpTokens; // Tokens reserved for LP
 
     // ============ Mutable State ============
     Status public status;
@@ -52,37 +59,51 @@ contract ICOContract is IICOContract, ReentrancyGuard {
     error MinimumWasMet();
     error TransferFailed();
     error InvalidConfig();
+    error LPCreationFailed();
 
     // ============ Constructor ============
-    constructor(
-        address _token,
-        address _treasury,
-        address _factory,
-        uint256 _tokenSupply,
-        uint256 _minimumRaise,
-        uint256 _startTime,
-        uint256 _endTime,
-        uint256 _platformFeeBps,
-        uint256 _teamTokens,
-        address _teamWallet
-    ) {
-        if (_token == address(0)) revert InvalidConfig();
-        if (_treasury == address(0)) revert InvalidConfig();
-        if (_endTime <= _startTime) revert InvalidConfig();
-        if (_tokenSupply == 0) revert InvalidConfig();
-        if (_platformFeeBps > 500) revert InvalidConfig(); // Max 5%
-        if (_teamTokens > (_tokenSupply * 20) / 100) revert InvalidConfig(); // Max 20%
+    struct ICOConfig {
+        address token;
+        address treasury;
+        address factory;
+        uint256 tokenSupply;
+        uint256 minimumRaise;
+        uint256 startTime;
+        uint256 endTime;
+        uint256 platformFeeBps;
+        uint256 teamTokens;
+        address teamWallet;
+        // LP Config
+        address router;
+        uint256 lpBnbBps;
+        uint256 lpTokens;
+    }
 
-        token = _token;
-        treasury = _treasury;
-        factory = _factory;
-        tokenSupply = _tokenSupply;
-        minimumRaise = _minimumRaise;
-        startTime = _startTime;
-        endTime = _endTime;
-        platformFeeBps = _platformFeeBps;
-        teamTokens = _teamTokens;
-        teamWallet = _teamWallet;
+    constructor(ICOConfig memory config) {
+        if (config.token == address(0)) revert InvalidConfig();
+        if (config.treasury == address(0)) revert InvalidConfig();
+        if (config.endTime <= config.startTime) revert InvalidConfig();
+        if (config.tokenSupply == 0) revert InvalidConfig();
+        if (config.platformFeeBps > 500) revert InvalidConfig(); // Max 5%
+        if (config.teamTokens > (config.tokenSupply * 20) / 100) revert InvalidConfig(); // Max 20%
+        if (config.lpBnbBps > 5000) revert InvalidConfig(); // Max 50% for LP
+        // Router is optional - if 0, no LP creation
+        if (config.lpBnbBps > 0 && config.router == address(0)) revert InvalidConfig();
+        if (config.lpBnbBps > 0 && config.lpTokens == 0) revert InvalidConfig();
+
+        token = config.token;
+        treasury = config.treasury;
+        factory = config.factory;
+        tokenSupply = config.tokenSupply;
+        minimumRaise = config.minimumRaise;
+        startTime = config.startTime;
+        endTime = config.endTime;
+        platformFeeBps = config.platformFeeBps;
+        teamTokens = config.teamTokens;
+        teamWallet = config.teamWallet;
+        router = config.router;
+        lpBnbBps = config.lpBnbBps;
+        lpTokens = config.lpTokens;
 
         status = Status.PENDING;
     }
@@ -117,7 +138,7 @@ contract ICOContract is IICOContract, ReentrancyGuard {
 
     /**
      * @notice Finalize the ICO after end time (anyone can call)
-     * @dev Calculates token price and distributes funds to treasury
+     * @dev Calculates token price, creates LP, and distributes funds to treasury
      */
     function finalize() external nonReentrant {
         if (status != Status.ACTIVE) revert NotActive();
@@ -130,9 +151,18 @@ contract ICOContract is IICOContract, ReentrancyGuard {
         // This gives price in wei per token with 18 decimal precision
         tokenPrice = (totalCommitted * 1e18) / tokenSupply;
 
-        // Calculate fee and treasury amounts
+        // Calculate fee and LP amounts
         uint256 platformFee = (totalCommitted * platformFeeBps) / 10000;
-        uint256 treasuryAmount = totalCommitted - platformFee;
+        uint256 lpBnbAmount = (totalCommitted * lpBnbBps) / 10000;
+        uint256 treasuryAmount = totalCommitted - platformFee - lpBnbAmount;
+
+        // Create LP if configured
+        if (lpBnbBps > 0 && router != address(0) && lpTokens > 0) {
+            _createLiquidity(lpBnbAmount);
+        } else {
+            // If no LP, add the LP BNB to treasury
+            treasuryAmount += lpBnbAmount;
+        }
 
         // Transfer to treasury
         (bool treasurySent, ) = payable(treasury).call{value: treasuryAmount}("");
@@ -145,6 +175,38 @@ contract ICOContract is IICOContract, ReentrancyGuard {
         }
 
         emit Finalized(totalCommitted, tokenPrice, participantCount);
+    }
+
+    /**
+     * @notice Internal function to create liquidity pool
+     * @param bnbAmount Amount of BNB to add to LP
+     */
+    function _createLiquidity(uint256 bnbAmount) internal {
+        // Approve router to spend tokens
+        IERC20(token).approve(router, lpTokens);
+
+        // Add liquidity - LP tokens go to treasury
+        try IPancakeRouter(router).addLiquidityETH{value: bnbAmount}(
+            token,
+            lpTokens,
+            (lpTokens * 95) / 100, // 5% slippage on tokens
+            (bnbAmount * 95) / 100, // 5% slippage on BNB
+            treasury, // LP tokens sent to treasury
+            block.timestamp + 300 // 5 minute deadline
+        ) returns (uint256 amountToken, uint256 amountBNB, uint256 liquidity) {
+            emit LiquidityAdded(amountToken, amountBNB, liquidity);
+
+            // Refund any unused tokens back to treasury
+            uint256 remainingTokens = IERC20(token).balanceOf(address(this)) - tokenSupply;
+            if (remainingTokens > 0) {
+                IERC20(token).safeTransfer(treasury, remainingTokens);
+            }
+        } catch {
+            // If LP creation fails, send tokens and BNB to treasury instead
+            IERC20(token).safeTransfer(treasury, lpTokens);
+            (bool sent, ) = payable(treasury).call{value: bnbAmount}("");
+            if (!sent) revert LPCreationFailed();
+        }
     }
 
     /**

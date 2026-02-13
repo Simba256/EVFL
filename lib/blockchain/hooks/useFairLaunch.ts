@@ -26,6 +26,8 @@ const FairLaunchFactoryABI = [
           { name: 'teamWallet', type: 'address' },
           { name: 'monthlyBudget', type: 'uint256' },
           { name: 'treasuryOwner', type: 'address' },
+          { name: 'lpBnbBps', type: 'uint256' },
+          { name: 'lpTokensBps', type: 'uint256' },
         ],
       },
     ],
@@ -186,6 +188,8 @@ export interface CreateFairLaunchParams {
   teamWallet?: string // required if teamTokensPercent > 0
   monthlyBudget?: string // in BNB, 0 = no limit
   treasuryOwner?: string // defaults to creator
+  lpBnbPercent?: number // 0-50%, % of raised BNB for LP
+  lpTokensPercent?: number // 0-50%, % of tokens reserved for LP
 }
 
 export interface ICOInfo {
@@ -230,6 +234,8 @@ export function useFairLaunch() {
 
     const durationSeconds = params.icoDurationDays * 24 * 60 * 60
     const teamBps = params.teamTokensPercent * 100 // Convert percent to basis points
+    const lpBnbBps = (params.lpBnbPercent || 0) * 100 // Convert percent to basis points
+    const lpTokensBps = (params.lpTokensPercent || 0) * 100 // Convert percent to basis points
 
     const launchParams = {
       name: params.name,
@@ -243,6 +249,8 @@ export function useFairLaunch() {
       teamWallet: (params.teamWallet || '0x0000000000000000000000000000000000000000') as Address,
       monthlyBudget: params.monthlyBudget ? parseEther(params.monthlyBudget) : BigInt(0),
       treasuryOwner: (params.treasuryOwner || address) as Address,
+      lpBnbBps: BigInt(lpBnbBps),
+      lpTokensBps: BigInt(lpTokensBps),
     }
 
     // Simulate the transaction first
