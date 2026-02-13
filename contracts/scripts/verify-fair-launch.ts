@@ -1,10 +1,10 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const factory = await ethers.getContractAt("FairLaunchFactory", "0x2BCD3B78ff66A7ec16eC694cef1Fd8dd6e5404E2");
+  const factory = await ethers.getContractAt("FairLaunchFactory", "0x69895E20e7572D26005C03bBD11ccf3b4bA23b98");
 
   console.log("\n=== FairLaunchFactory Verification ===");
-  console.log("Address:", "0x2BCD3B78ff66A7ec16eC694cef1Fd8dd6e5404E2");
+  console.log("Address:", "0x69895E20e7572D26005C03bBD11ccf3b4bA23b98");
   console.log("Platform Fee (bps):", (await factory.platformFeeBps()).toString());
   console.log("MIN_RAISE:", ethers.formatEther(await factory.MIN_RAISE()), "BNB");
   console.log("MIN_DURATION:", Number(await factory.MIN_DURATION()) / 86400, "days");
@@ -29,6 +29,7 @@ async function main() {
   }
 
   console.log("\nQuote Token (WBNB):", await factory.quoteToken());
+  console.log("PancakeSwap Router:", await factory.pancakeRouter());
   console.log("Owner:", await factory.owner());
   console.log("=== Verification Complete ===\n");
 }
