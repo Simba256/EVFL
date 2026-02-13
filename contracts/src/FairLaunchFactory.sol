@@ -17,7 +17,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
     // ============ Constants ============
     uint256 public constant MIN_DURATION = 1 days;
     uint256 public constant MAX_DURATION = 14 days;
-    uint256 public constant MIN_RAISE = 10 ether; // ~10 BNB
+    uint256 public constant MIN_RAISE = 0.1 ether; // 0.1 BNB - lowered for testing
     uint256 public constant MIN_SUPPLY = 1_000_000 * 1e18; // 1M tokens
     uint256 public constant MAX_SUPPLY = 1_000_000_000_000 * 1e18; // 1T tokens
     uint256 public constant MAX_TEAM_BPS = 2000; // 20%
