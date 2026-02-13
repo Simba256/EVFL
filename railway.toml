@@ -12,7 +12,7 @@ restartPolicyMaxRetries = 5
 
 # Health check configuration
 healthcheckPath = "/health"
-healthcheckTimeout = 10
+healthcheckTimeout = 120
 
 # Resource limits (adjust based on your plan)
 # numReplicas = 1
