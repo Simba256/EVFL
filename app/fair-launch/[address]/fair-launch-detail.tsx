@@ -108,7 +108,7 @@ function getTimeInfo(startTime: string, endTime: string): { label: string; value
   return { label: 'Ended', value: new Date(endTime).toLocaleDateString(), isLive: false, hasEnded: true }
 }
 
-export function FairLaunchDetail({ fairLaunch, commitments }: Props) {
+export function FairLaunchDetail({ fairLaunch, commitments: initialCommitments }: Props) {
   const { isConnected, address } = useAccount()
   const {
     commit,
@@ -136,6 +136,22 @@ export function FairLaunchDetail({ fairLaunch, commitments }: Props) {
   const [hasClaimed, setHasClaimed] = useState(false)
   const [canFinalizeICO, setCanFinalizeICO] = useState(false)
   const [canMarkFailedICO, setCanMarkFailedICO] = useState(false)
+
+  // Commitments from database (auto-refreshed)
+  const [commitments, setCommitments] = useState<CommitmentData[]>(initialCommitments)
+
+  // Fetch commitments from API
+  const fetchCommitments = async () => {
+    try {
+      const response = await fetch(`/api/fair-launches/${fairLaunch.icoAddress}/commitments?limit=100`)
+      if (response.ok) {
+        const data = await response.json()
+        setCommitments(data.commitments || [])
+      }
+    } catch (e) {
+      console.error('Error fetching commitments:', e)
+    }
+  }
 
   // Fetch on-chain state
   useEffect(() => {
@@ -165,7 +181,11 @@ export function FairLaunchDetail({ fairLaunch, commitments }: Props) {
     }
 
     fetchOnChainState()
-    const interval = setInterval(fetchOnChainState, 15000) // Refresh every 15s
+    fetchCommitments()
+    const interval = setInterval(() => {
+      fetchOnChainState()
+      fetchCommitments()
+    }, 15000) // Refresh every 15s
     return () => clearInterval(interval)
   }, [fairLaunch.icoAddress, address])
 
