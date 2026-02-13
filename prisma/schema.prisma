@@ -23,6 +23,14 @@ enum TradeType {
   sell
 }
 
+// Fair Launch ICO status enum
+enum ICOStatus {
+  PENDING
+  ACTIVE
+  FINALIZED
+  FAILED
+}
+
 // Core Token model - stores token metadata and cached metrics
 model Token {
   id                String      @id @default(cuid())
@@ -200,4 +208,100 @@ model IndexerState {
   @@index([contractType])
   @@index([chainId])
   @@map("indexer_state")
+}
+
+// ============================================================
+// Fair Launch ICO Models
+// ============================================================
+
+// FairLaunch model - ICO with pro-rata token distribution
+model FairLaunch {
+  id                String      @id @default(cuid())
+
+  // On-chain addresses
+  icoAddress        String      @unique @db.VarChar(42)
+  tokenAddress      String      @db.VarChar(42)
+  treasuryAddress   String      @db.VarChar(42)
+  timelockAddress   String?     @db.VarChar(42)
+  creatorAddress    String      @db.VarChar(42)
+
+  // Token metadata
+  name              String
+  symbol            String
+  imageURI          String      @default("")
+  description       String      @default("")
+
+  // ICO parameters
+  tokenSupply       String      // Total tokens for ICO participants
+  minimumRaise      String      // Minimum BNB to succeed
+  teamTokensBps     Int         @default(0) // 0-2000 (0-20%)
+
+  // Timing
+  startTime         DateTime
+  endTime           DateTime
+
+  // ICO state (updated by indexer)
+  status            ICOStatus   @default(PENDING)
+  totalCommitted    String      @default("0")
+  tokenPrice        String      @default("0")
+  participantCount  Int         @default(0)
+
+  // Results (set after finalization)
+  finalizedAt       DateTime?
+  failedAt          DateTime?
+
+  // Transaction hashes
+  deployTxHash      String?     @db.VarChar(66)
+  finalizeTxHash    String?     @db.VarChar(66)
+
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  commitments       Commitment[]
+
+  @@index([status])
+  @@index([creatorAddress])
+  @@index([tokenAddress])
+  @@index([createdAt(sort: Desc)])
+  @@index([endTime])
+  @@map("fair_launches")
+}
+
+// Commitment model - individual user commitment to a Fair Launch ICO
+model Commitment {
+  id                String      @id @default(cuid())
+
+  // Fair Launch reference
+  fairLaunchId      String
+  fairLaunch        FairLaunch  @relation(fields: [fairLaunchId], references: [id], onDelete: Cascade)
+  icoAddress        String      @db.VarChar(42)
+
+  // User details
+  userAddress       String      @db.VarChar(42)
+  amount            String      // Total BNB committed (accumulates across multiple commits)
+  allocation        String      @default("0") // Calculated token allocation (set after finalization)
+
+  // Claim/Refund state
+  hasClaimed        Boolean     @default(false)
+  hasRefunded       Boolean     @default(false)
+  claimedAt         DateTime?
+  refundedAt        DateTime?
+
+  // On-chain data (last commitment tx)
+  lastTxHash        String?     @db.VarChar(66)
+  lastBlockNumber   BigInt?
+  lastBlockTime     DateTime?
+
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([fairLaunchId, userAddress])
+  @@index([icoAddress])
+  @@index([userAddress])
+  @@index([hasClaimed])
+  @@index([amount(sort: Desc)])
+  @@map("commitments")
 }

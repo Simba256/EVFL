@@ -30,6 +30,16 @@ import { refreshAllTokenMetrics } from './refresh-metrics'
 // Import health check server
 import { startHealthServer, markHealthy, markUnhealthy } from './health'
 
+// Import Fair Launch indexer
+import {
+  processFairLaunchCreatedEvents,
+  processICOEvents,
+  loadExistingFairLaunches,
+  getLastFairLaunchCreatedBlock,
+  getLastICOEventBlock,
+  indexedICOs,
+} from './fair-launch'
+
 // Contract ABIs (event signatures only)
 const TokenCreatedEvent = parseAbiItem(
   'event TokenCreated(address indexed token, address indexed pool, address indexed creator, string name, string symbol, uint256 initialSupply)'
@@ -57,6 +67,7 @@ const config = {
   chainId: parseInt(process.env.NEXT_PUBLIC_BSC_TESTNET_CHAIN_ID || '97'),
   rpcUrls: BSC_TESTNET_RPCS,
   tokenFactoryAddress: process.env.NEXT_PUBLIC_TOKEN_FACTORY_ADDRESS_TESTNET as Address,
+  fairLaunchFactoryAddress: process.env.NEXT_PUBLIC_FAIR_LAUNCH_FACTORY_ADDRESS_TESTNET as Address,
   wbnbAddress: process.env.NEXT_PUBLIC_WBNB_ADDRESS_TESTNET as Address,
   pollInterval: parseInt(process.env.INDEXER_POLL_INTERVAL || '10000'), // Default 10s instead of 5s
   startBlock: BigInt(process.env.INDEXER_START_BLOCK || '0'),
@@ -556,6 +567,7 @@ async function runIndexer(): Promise<void> {
   console.log('Starting RoboLaunch Indexer...')
   console.log(`Chain ID: ${config.chainId}`)
   console.log(`TokenFactory: ${config.tokenFactoryAddress}`)
+  console.log(`FairLaunchFactory: ${config.fairLaunchFactoryAddress}`)
   console.log(`Poll Interval: ${config.pollInterval}ms`)
 
   // Start health check server
@@ -565,6 +577,9 @@ async function runIndexer(): Promise<void> {
 
   // Load existing pools
   await loadExistingPools()
+
+  // Load existing Fair Launches
+  await loadExistingFairLaunches(prisma)
 
   // Cycle counter for periodic tasks
   let cycleCount = 0
@@ -621,6 +636,52 @@ async function runIndexer(): Promise<void> {
             token.id,
             token.totalSupply,
             lastTransferBlock + 1n,
+            currentBlock
+          )
+        }
+      }
+
+      // ============ Fair Launch Indexing ============
+
+      // Index FairLaunchCreated events
+      if (config.fairLaunchFactoryAddress) {
+        const lastFairLaunchBlock = await getLastFairLaunchCreatedBlock(
+          prisma,
+          config.fairLaunchFactoryAddress,
+          config.chainId,
+          config.startBlock
+        )
+        if (currentBlock > lastFairLaunchBlock) {
+          await processFairLaunchCreatedEvents(
+            prisma,
+            publicClient,
+            config.fairLaunchFactoryAddress,
+            config.chainId,
+            lastFairLaunchBlock + 1n,
+            currentBlock,
+            config.startBlock
+          )
+        }
+      }
+
+      // Index ICO events for all monitored Fair Launches
+      for (const icoAddress of indexedICOs) {
+        // Use the minimum block from all event types as starting point
+        const lastCommittedBlock = await getLastICOEventBlock(
+          prisma,
+          icoAddress,
+          'Committed',
+          config.chainId,
+          config.startBlock
+        )
+
+        if (currentBlock > lastCommittedBlock) {
+          await processICOEvents(
+            prisma,
+            publicClient,
+            icoAddress as Address,
+            config.chainId,
+            lastCommittedBlock + 1n,
             currentBlock
           )
         }

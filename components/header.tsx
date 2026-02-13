@@ -26,22 +26,28 @@ export function Header() {
             Tokens
           </Link>
           <Link
+            href="/fair-launch"
+            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
+          >
+            Fair Launch
+          </Link>
+          <Link
             href="/launch"
             className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
           >
             Launch
           </Link>
           <Link
+            href="/portfolio"
+            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
+          >
+            Portfolio
+          </Link>
+          <Link
             href="/leaderboard"
             className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
           >
             Leaderboard
-          </Link>
-          <Link
-            href="/about"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            About
           </Link>
         </nav>
 

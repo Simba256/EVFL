@@ -10,13 +10,29 @@ const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.24",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    compilers: [
+      {
+        version: "0.8.24",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
       },
-      viaIR: true,
+    ],
+    overrides: {
+      "src/FairLaunchFactory.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1, // Minimize deployment size
+          },
+          viaIR: true,
+        },
+      },
     },
   },
   networks: {
@@ -37,10 +53,17 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: {
-      bscTestnet: BSCSCAN_API_KEY,
-      bsc: BSCSCAN_API_KEY,
-    },
+    apiKey: BSCSCAN_API_KEY,
+    customChains: [
+      {
+        network: "bscTestnet",
+        chainId: 97,
+        urls: {
+          apiURL: "https://api-testnet.bscscan.com/api",
+          browserURL: "https://testnet.bscscan.com"
+        }
+      }
+    ]
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS === "true",
