@@ -233,8 +233,9 @@ export function LaunchForm() {
         const uploadResult = await uploadImageToIPFS(imageFile)
         finalImageUrl = uploadResult.url
         setImageIpfsUrl(uploadResult.url)
-      } catch (uploadError: any) {
-        setError(uploadError.message || 'Failed to upload image')
+      } catch (uploadError) {
+        const errorMessage = uploadError instanceof Error ? uploadError.message : 'Failed to upload image'
+        setError(errorMessage)
         setTxState('error')
         return
       }
@@ -277,9 +278,10 @@ export function LaunchForm() {
       }
 
       setTxState('success')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating token:', err)
-      setError(err.message || 'Failed to create token')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create token'
+      setError(errorMessage)
       setTxState('error')
     }
   }

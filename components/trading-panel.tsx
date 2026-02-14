@@ -125,11 +125,12 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
       ])
       setUserBnbBalance(bnbBal)
       setUserTokenBalance(tokenBal)
-    } catch (e: any) {
+    } catch (e) {
       console.error('Swap error:', e)
-      setError(e.message || 'Swap failed')
+      const errorMessage = e instanceof Error ? e.message : 'Swap failed'
+      setError(errorMessage)
       toast.error('Swap failed', {
-        description: e.message || 'An unexpected error occurred',
+        description: errorMessage,
       })
     } finally {
       setIsLoading(false)
@@ -208,7 +209,13 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
       {/* Mode tabs */}
       <div className="flex mb-4 bg-background/50 rounded-lg p-1">
         <button
-          onClick={() => setMode('buy')}
+          onClick={() => {
+            if (mode !== 'buy') {
+              setMode('buy')
+              setInputAmount("")
+              setOutputAmount("")
+            }
+          }}
           className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors ${
             mode === 'buy'
               ? 'bg-chart-2 text-white'
@@ -218,7 +225,13 @@ export function TradingPanel({ tokenAddress, poolAddress, tokenSymbol, tokenName
           Buy
         </button>
         <button
-          onClick={() => setMode('sell')}
+          onClick={() => {
+            if (mode !== 'sell') {
+              setMode('sell')
+              setInputAmount("")
+              setOutputAmount("")
+            }
+          }}
           className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors ${
             mode === 'sell'
               ? 'bg-destructive text-white'

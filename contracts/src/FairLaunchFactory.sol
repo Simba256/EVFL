@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./LaunchToken.sol";
 import "./ICOContract.sol";
@@ -14,6 +15,8 @@ import "./Treasury.sol";
  * @dev Creates LaunchToken + ICOContract + Treasury + Timelock for each launch
  */
 contract FairLaunchFactory is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     // ============ Constants ============
     uint256 public constant MIN_DURATION = 1 days;
     uint256 public constant MAX_DURATION = 14 days;
@@ -25,7 +28,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
     // ============ Platform Settings ============
     uint256 public platformFeeBps = 100; // 1% (100 basis points)
     uint256 public constant MAX_FEE_BPS = 500; // Max 5%
-
+    uint256 public icoStartDelay = 1 hours; // Configurable ICO start delay
 
     // ============ External Contracts ============
     address public immutable quoteToken; // WBNB
@@ -71,6 +74,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
     event PlatformFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
     event FeesWithdrawn(address indexed to, uint256 amount);
     event RouterUpdated(address indexed oldRouter, address indexed newRouter);
+    event ICOStartDelayUpdated(uint256 oldDelay, uint256 newDelay);
 
     // ============ Errors ============
     error InvalidName();
@@ -189,7 +193,7 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         treasury = address(newTreasury);
 
         // ============ 4. Deploy ICO Contract ============
-        uint256 startTime = block.timestamp + 1 hours; // 1 hour delay
+        uint256 startTime = block.timestamp + icoStartDelay;
         uint256 endTime = startTime + params.icoDuration;
 
         ICOContract newICO = new ICOContract(
@@ -215,11 +219,11 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         // Tokens were minted to this factory, now distribute them
         // ICO tokens + LP tokens to ICO contract
         uint256 icoTotalTokens = params.tokenSupply + lpTokens;
-        IERC20(token).transfer(ico, icoTotalTokens);
+        IERC20(token).safeTransfer(ico, icoTotalTokens);
 
         // Team tokens to treasury (locked)
         if (teamTokens > 0) {
-            IERC20(token).transfer(treasury, teamTokens);
+            IERC20(token).safeTransfer(treasury, teamTokens);
         }
 
         // ============ 6. Register Launch ============
@@ -280,6 +284,17 @@ contract FairLaunchFactory is Ownable, ReentrancyGuard {
         address oldRouter = pancakeRouter;
         pancakeRouter = newRouter;
         emit RouterUpdated(oldRouter, newRouter);
+    }
+
+    /**
+     * @notice Update ICO start delay
+     * @param newDelay New delay in seconds (max 7 days)
+     */
+    function setICOStartDelay(uint256 newDelay) external onlyOwner {
+        if (newDelay > 7 days) revert InvalidDuration();
+        uint256 oldDelay = icoStartDelay;
+        icoStartDelay = newDelay;
+        emit ICOStartDelayUpdated(oldDelay, newDelay);
     }
 
     /**

@@ -16,9 +16,9 @@ describe("FairLaunchFactory", function () {
     const WBNB = await ethers.getContractFactory("WBNB");
     const wbnb = await WBNB.deploy();
 
-    // Deploy Factory
+    // Deploy Factory (with router set to zero address for tests without LP)
     const FairLaunchFactory = await ethers.getContractFactory("FairLaunchFactory");
-    const factory = await FairLaunchFactory.deploy(await wbnb.getAddress());
+    const factory = await FairLaunchFactory.deploy(await wbnb.getAddress(), ethers.ZeroAddress);
 
     return { factory, wbnb, owner, creator, user1, user2, treasuryOwner };
   }
@@ -35,7 +35,7 @@ describe("FairLaunchFactory", function () {
     it("should reject zero address for quote token", async function () {
       const FairLaunchFactory = await ethers.getContractFactory("FairLaunchFactory");
       await expect(
-        FairLaunchFactory.deploy(ethers.ZeroAddress)
+        FairLaunchFactory.deploy(ethers.ZeroAddress, ethers.ZeroAddress)
       ).to.be.revertedWithCustomError(FairLaunchFactory, "ZeroAddress");
     });
   });
@@ -56,6 +56,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       const tx = await factory.connect(creator).createFairLaunch(params);
@@ -86,6 +88,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: creator.address,
         monthlyBudget: ethers.parseEther("100"),
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       const tx = await factory.connect(creator).createFairLaunch(params);
@@ -124,6 +128,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await factory.connect(creator).createFairLaunch(params);
@@ -156,6 +162,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: creator.address,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await factory.connect(creator).createFairLaunch(params);
@@ -188,6 +196,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await expect(
@@ -211,6 +221,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await expect(
@@ -239,6 +251,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: creator.address,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await expect(
@@ -287,6 +301,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await factory.connect(creator).createFairLaunch(params);
@@ -343,6 +359,8 @@ describe("FairLaunchFactory", function () {
         teamWallet: ethers.ZeroAddress,
         monthlyBudget: 0,
         treasuryOwner: treasuryOwner.address,
+        lpBnbBps: 0,
+        lpTokensBps: 0,
       };
 
       await factory.connect(creator).createFairLaunch(params);
@@ -374,6 +392,8 @@ describe("FairLaunchFactory", function () {
           teamWallet: ethers.ZeroAddress,
           monthlyBudget: 0,
           treasuryOwner: treasuryOwner.address,
+          lpBnbBps: 0,
+          lpTokensBps: 0,
         };
         await factory.connect(creator).createFairLaunch(params);
       }

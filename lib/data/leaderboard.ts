@@ -4,6 +4,10 @@ import {
   isDatabaseAvailable,
   useDatabaseEnabled,
 } from '@/lib/db'
+import { formatCompactCurrency } from '@/lib/utils/format'
+
+// Re-export formatCompactCurrency as formatNumber for backwards compatibility
+export { formatCompactCurrency as formatNumber } from '@/lib/utils/format'
 
 // Mock leaderboard data
 export const MOCK_LEADERBOARD_DATA: LeaderboardToken[] = [
@@ -122,13 +126,3 @@ export async function getLeaderboard(sortBy: LeaderboardSortBy = 'marketCap'): P
   }))
 }
 
-/**
- * Format number to currency string
- * @param num - Number to format
- * @returns Formatted string (e.g., "$2.4M", "$890K")
- */
-export function formatNumber(num: number): string {
-  if (num >= 1000000) return `$${(num / 1000000).toFixed(2)}M`
-  if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`
-  return `$${num.toFixed(4)}`
-}

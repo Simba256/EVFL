@@ -4,7 +4,7 @@ import { useState } from "react"
 import { TrendingUp, TrendingDown, Users, Activity } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
-import { formatSubscriptNumber } from "@/lib/utils/format"
+import { formatSubscriptNumber, formatCompactCurrency } from "@/lib/utils/format"
 
 interface LeaderboardToken {
   rank: number
@@ -97,12 +97,6 @@ const LEADERBOARD_DATA: LeaderboardToken[] = [
 export function LeaderboardTable() {
   const [sortBy, setSortBy] = useState<"marketCap" | "volume" | "holders">("marketCap")
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(2)}M`
-    if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`
-    return `$${num.toFixed(4)}`
-  }
-
   return (
     <div>
       <div className="flex flex-wrap gap-3 mb-6">
@@ -193,7 +187,7 @@ export function LeaderboardTable() {
 
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Market Cap</div>
-                    <div className="font-bold text-foreground">{formatNumber(token.marketCap)}</div>
+                    <div className="font-bold text-foreground">{formatCompactCurrency(token.marketCap)}</div>
                     <div className="text-xs text-muted-foreground">7d: +{token.change7d}%</div>
                   </div>
 
@@ -202,7 +196,7 @@ export function LeaderboardTable() {
                       <Activity className="h-3 w-3" />
                       24h Volume
                     </div>
-                    <div className="font-bold text-foreground">{formatNumber(token.volume24h)}</div>
+                    <div className="font-bold text-foreground">{formatCompactCurrency(token.volume24h)}</div>
                   </div>
 
                   <div>

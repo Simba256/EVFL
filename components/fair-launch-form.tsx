@@ -186,8 +186,9 @@ export function FairLaunchForm() {
         const uploadResult = await uploadImageToIPFS(imageFile)
         finalImageUrl = uploadResult.url
         setImageIpfsUrl(uploadResult.url)
-      } catch (uploadError: any) {
-        setError(uploadError.message || 'Failed to upload image')
+      } catch (uploadError) {
+        const errorMessage = uploadError instanceof Error ? uploadError.message : 'Failed to upload image'
+        setError(errorMessage)
         setTxState('error')
         return
       }
@@ -214,9 +215,10 @@ export function FairLaunchForm() {
 
       setTxHash(result.txHash)
       setTxState('success')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating fair launch:', err)
-      setError(err.message || 'Failed to create fair launch')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create fair launch'
+      setError(errorMessage)
       setTxState('error')
     }
   }

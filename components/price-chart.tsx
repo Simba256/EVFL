@@ -41,26 +41,51 @@ const INTERVALS: { label: string; value: Interval }[] = [
   { label: "1D", value: "1d" },
 ]
 
+// Types for recharts Customized component props
+interface CandlesticksProps {
+  formattedGraphicalItems?: Array<{
+    item?: { type?: { displayName?: string } }
+    props?: { data?: CandleDataPoint[] }
+  }>
+  xAxisMap?: Record<string, { scale?: (value: string) => number; x?: number; width?: number; bandSize?: number }>
+  yAxisMap?: Record<string, { scale?: (value: number) => number }>
+}
+
+interface CandleDataPoint {
+  time: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{ payload: CandleDataPoint }>
+  label?: string
+}
+
 // Custom candlestick renderer
-const Candlesticks = (props: any) => {
+const Candlesticks = (props: CandlesticksProps) => {
   const { formattedGraphicalItems, xAxisMap, yAxisMap } = props
 
   if (!formattedGraphicalItems || !xAxisMap || !yAxisMap) return null
 
-  const xAxis = Object.values(xAxisMap)[0] as any
-  const yAxis = Object.values(yAxisMap)[0] as any
+  const xAxis = Object.values(xAxisMap)[0]
+  const yAxis = Object.values(yAxisMap)[0]
 
   if (!xAxis?.scale || !yAxis?.scale) return null
 
-  const barItems = formattedGraphicalItems.find((item: any) => item?.item?.type?.displayName === 'Bar')
+  const barItems = formattedGraphicalItems.find((item) => item?.item?.type?.displayName === 'Bar')
   if (!barItems?.props?.data) return null
 
   const data = barItems.props.data
-  const bandWidth = xAxis.bandSize || (xAxis.width / data.length)
+  const bandWidth = xAxis.bandSize || ((xAxis.width ?? 0) / data.length)
 
   return (
     <g className="candlesticks">
-      {data.map((entry: any, index: number) => {
+      {data.map((entry, index: number) => {
         const { open, high, low, close } = entry
 
         const x = xAxis.scale(entry.time) ?? (xAxis.x + index * bandWidth + bandWidth / 2)
@@ -194,7 +219,7 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
     return price.toFixed(8)
   }
 
-  const CandleTooltip = ({ active, payload, label }: any) => {
+  const CandleTooltip = ({ active, payload, label }: TooltipProps) => {
     if (!active || !payload || !payload[0]) return null
     const data = payload[0].payload
     const isUp = data.close >= data.open

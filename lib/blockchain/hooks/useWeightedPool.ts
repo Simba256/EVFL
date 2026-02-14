@@ -168,7 +168,9 @@ export function useWeightedPool() {
 
     // Calculate expected output
     const expectedOut = await calcOutGivenIn(poolAddress, tokenIn, tokenOut, amountInWei);
-    const minAmountOut = expectedOut * BigInt(100 - slippagePercent) / 100n;
+    // Convert slippage to basis points to handle decimal values (0.1% = 10 bps, 1% = 100 bps)
+    const slippageBps = Math.floor(slippagePercent * 100);
+    const minAmountOut = expectedOut * BigInt(10000 - slippageBps) / 10000n;
 
     // Execute swap
     console.log('Executing swap...');

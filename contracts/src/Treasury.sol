@@ -35,6 +35,7 @@ contract Treasury is Ownable, ReentrancyGuard {
     // ============ Errors ============
     error InvalidRecipient();
     error InvalidAmount();
+    error InvalidTokenAddress();
     error MonthlyLimitExceeded();
     error TransferFailed();
     error InsufficientBalance();
@@ -105,6 +106,7 @@ contract Treasury is Ownable, ReentrancyGuard {
         uint256 amount,
         string calldata reason
     ) external onlyOwner nonReentrant {
+        if (tokenAddress == address(0)) revert InvalidTokenAddress();
         if (recipient == address(0)) revert InvalidRecipient();
         if (amount == 0) revert InvalidAmount();
 

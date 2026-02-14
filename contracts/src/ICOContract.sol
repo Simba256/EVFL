@@ -60,6 +60,7 @@ contract ICOContract is IICOContract, ReentrancyGuard {
     error TransferFailed();
     error InvalidConfig();
     error LPCreationFailed();
+    error InvalidStatus();
 
     // ============ Constructor ============
     struct ICOConfig {
@@ -86,6 +87,7 @@ contract ICOContract is IICOContract, ReentrancyGuard {
         if (config.tokenSupply == 0) revert InvalidConfig();
         if (config.platformFeeBps > 500) revert InvalidConfig(); // Max 5%
         if (config.teamTokens > (config.tokenSupply * 20) / 100) revert InvalidConfig(); // Max 20%
+        if (config.teamTokens > 0 && config.teamWallet == address(0)) revert InvalidConfig();
         if (config.lpBnbBps > 5000) revert InvalidConfig(); // Max 50% for LP
         // Router is optional - if 0, no LP creation
         if (config.lpBnbBps > 0 && config.router == address(0)) revert InvalidConfig();
@@ -194,6 +196,15 @@ contract ICOContract is IICOContract, ReentrancyGuard {
             treasury, // LP tokens sent to treasury
             block.timestamp + 300 // 5 minute deadline
         ) returns (uint256 amountToken, uint256 amountBNB, uint256 liquidity) {
+            // Verify LP was actually created
+            if (liquidity == 0) {
+                // Fallback: send tokens and BNB to treasury instead
+                IERC20(token).safeTransfer(treasury, lpTokens);
+                (bool sent, ) = payable(treasury).call{value: bnbAmount}("");
+                if (!sent) revert LPCreationFailed();
+                return;
+            }
+
             emit LiquidityAdded(amountToken, amountBNB, liquidity);
 
             // Refund any unused tokens back to treasury
@@ -212,8 +223,8 @@ contract ICOContract is IICOContract, ReentrancyGuard {
     /**
      * @notice Mark ICO as failed (anyone can call after end time if minimum not met)
      */
-    function markFailed() external {
-        if (status != Status.ACTIVE && status != Status.PENDING) revert NotActive();
+    function markFailed() external nonReentrant {
+        if (status != Status.ACTIVE && status != Status.PENDING) revert InvalidStatus();
         if (block.timestamp <= endTime) revert NotEnded();
         if (totalCommitted >= minimumRaise) revert MinimumWasMet();
 
@@ -230,6 +241,7 @@ contract ICOContract is IICOContract, ReentrancyGuard {
         if (status != Status.FINALIZED) revert NotFinalized();
         if (commitments[msg.sender] == 0) revert NoCommitment();
         if (hasClaimed[msg.sender]) revert AlreadyClaimed();
+        if (totalCommitted == 0) revert ZeroAmount();
 
         hasClaimed[msg.sender] = true;
 

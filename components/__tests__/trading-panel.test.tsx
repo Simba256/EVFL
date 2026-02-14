@@ -233,9 +233,9 @@ describe('TradingPanel Component', function () {
         await user.click(settingsButton);
       }
 
-      // Click 2% button
-      const twoPercentButton = screen.getByRole('button', { name: '2%' });
-      await user.click(twoPercentButton);
+      // Click 2% button (use getAllByRole since there may be multiple due to React strict mode)
+      const twoPercentButtons = screen.getAllByRole('button', { name: '2%' });
+      await user.click(twoPercentButtons[0]);
 
       expect(screen.getByText(/Slippage: 2%/)).toBeInTheDocument();
     });
@@ -252,10 +252,12 @@ describe('TradingPanel Component', function () {
       if (settingsButton) {
         await user.click(settingsButton);
 
-        // Find the slippage input
-        const slippageInput = screen.getByRole('spinbutton');
-        await user.clear(slippageInput);
-        await user.type(slippageInput, '3.5');
+        // Find the slippage input (first spinbutton in DOM - settings panel renders before main input)
+        const spinbuttons = screen.getAllByRole('spinbutton');
+        const slippageInput = spinbuttons[0]; // Slippage input is the first one (in settings panel)
+        // Use fireEvent.change directly since user.clear() triggers onChange with empty value
+        // which resets slippage to 1 due to the || 1 fallback in the handler
+        fireEvent.change(slippageInput, { target: { value: '3.5' } });
 
         expect(screen.getByText(/Slippage: 3.5%/)).toBeInTheDocument();
       }

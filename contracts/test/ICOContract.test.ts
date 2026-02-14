@@ -29,18 +29,21 @@ describe("ICOContract", function () {
 
     // Deploy ICO contract
     const ICOContract = await ethers.getContractFactory("ICOContract");
-    const ico = await ICOContract.deploy(
-      await token.getAddress(),
-      treasury.address,
-      factory.address,
-      TOKEN_SUPPLY,
-      MINIMUM_RAISE,
-      startTime,
-      endTime,
-      PLATFORM_FEE_BPS,
-      0, // No team tokens
-      ethers.ZeroAddress
-    );
+    const ico = await ICOContract.deploy({
+      token: await token.getAddress(),
+      treasury: treasury.address,
+      factory: factory.address,
+      tokenSupply: TOKEN_SUPPLY,
+      minimumRaise: MINIMUM_RAISE,
+      startTime: startTime,
+      endTime: endTime,
+      platformFeeBps: PLATFORM_FEE_BPS,
+      teamTokens: 0, // No team tokens
+      teamWallet: ethers.ZeroAddress,
+      router: ethers.ZeroAddress,
+      lpBnbBps: 0,
+      lpTokens: 0,
+    });
 
     // Transfer tokens to ICO contract
     await token.transfer(await ico.getAddress(), TOKEN_SUPPLY);
@@ -68,18 +71,21 @@ describe("ICOContract", function () {
 
       const ICOContract = await ethers.getContractFactory("ICOContract");
       await expect(
-        ICOContract.deploy(
-          ethers.ZeroAddress,
-          treasury.address,
-          factory.address,
-          TOKEN_SUPPLY,
-          MINIMUM_RAISE,
-          startTime,
-          endTime,
-          PLATFORM_FEE_BPS,
-          0,
-          ethers.ZeroAddress
-        )
+        ICOContract.deploy({
+          token: ethers.ZeroAddress,
+          treasury: treasury.address,
+          factory: factory.address,
+          tokenSupply: TOKEN_SUPPLY,
+          minimumRaise: MINIMUM_RAISE,
+          startTime: startTime,
+          endTime: endTime,
+          platformFeeBps: PLATFORM_FEE_BPS,
+          teamTokens: 0,
+          teamWallet: ethers.ZeroAddress,
+          router: ethers.ZeroAddress,
+          lpBnbBps: 0,
+          lpTokens: 0,
+        })
       ).to.be.revertedWithCustomError(ICOContract, "InvalidConfig");
     });
 
@@ -95,18 +101,21 @@ describe("ICOContract", function () {
 
       const ICOContract = await ethers.getContractFactory("ICOContract");
       await expect(
-        ICOContract.deploy(
-          await token.getAddress(),
-          treasury.address,
-          factory.address,
-          TOKEN_SUPPLY,
-          MINIMUM_RAISE,
-          startTime,
-          endTime,
-          PLATFORM_FEE_BPS,
-          teamTokens,
-          owner.address
-        )
+        ICOContract.deploy({
+          token: await token.getAddress(),
+          treasury: treasury.address,
+          factory: factory.address,
+          tokenSupply: TOKEN_SUPPLY,
+          minimumRaise: MINIMUM_RAISE,
+          startTime: startTime,
+          endTime: endTime,
+          platformFeeBps: PLATFORM_FEE_BPS,
+          teamTokens: teamTokens,
+          teamWallet: owner.address,
+          router: ethers.ZeroAddress,
+          lpBnbBps: 0,
+          lpTokens: 0,
+        })
       ).to.be.revertedWithCustomError(ICOContract, "InvalidConfig");
     });
   });

@@ -59,7 +59,7 @@ export function formatAddress(
  * Format a large number with K/M/B suffixes
  * @param value - Number to format
  * @param decimals - Number of decimal places (default: 2)
- * @returns Formatted string (e.g., "1.2M", "890K", "$4.5B")
+ * @returns Formatted string (e.g., "1.2M", "890K", "4.5B")
  */
 export function formatCompactNumber(value: number, decimals: number = 2): string {
   if (value >= 1_000_000_000) {
@@ -72,6 +72,21 @@ export function formatCompactNumber(value: number, decimals: number = 2): string
     return `${(value / 1_000).toFixed(decimals)}K`
   }
   return value.toFixed(decimals)
+}
+
+/**
+ * Format a number as compact currency with K/M/B suffixes
+ * @param value - Number to format
+ * @returns Formatted currency string (e.g., "$2.4M", "$890K", "$4.50")
+ */
+export function formatCompactCurrency(value: number): string {
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(2)}M`
+  }
+  if (value >= 1_000) {
+    return `$${(value / 1_000).toFixed(0)}K`
+  }
+  return `$${value.toFixed(4)}`
 }
 
 /**
