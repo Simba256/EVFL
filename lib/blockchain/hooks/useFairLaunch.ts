@@ -1,8 +1,9 @@
 "use client"
 
 import { useCallback, useMemo } from 'react'
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
+import { useAccount, usePublicClient, useWalletClient, useChainId } from 'wagmi'
 import { parseEther, formatEther, type Address } from 'viem'
+import { getFairLaunchFactoryAddress, getChainConfig, getNativeCurrency } from '../config/chains'
 
 // FairLaunchFactory ABI (subset we need)
 const FairLaunchFactoryABI = [
@@ -207,8 +208,23 @@ export function useFairLaunch() {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
+  const chainId = useChainId()
 
-  const factoryAddress = process.env.NEXT_PUBLIC_FAIR_LAUNCH_FACTORY_ADDRESS_TESTNET as Address | undefined
+  // Get factory address for current chain
+  const factoryAddress = useMemo(() => {
+    return getFairLaunchFactoryAddress(chainId) as Address | undefined
+  }, [chainId])
+
+  // Get chain-specific info
+  const chainInfo = useMemo(() => {
+    const config = getChainConfig(chainId)
+    return {
+      nativeCurrency: getNativeCurrency(chainId),
+      dexName: config?.dexName || 'DEX',
+      shortName: config?.shortName || 'Unknown',
+      isTestnet: config?.isTestnet ?? true,
+    }
+  }, [chainId])
 
   const isConfigured = useMemo(() => {
     return !!factoryAddress && factoryAddress !== '0x'
@@ -476,6 +492,8 @@ export function useFairLaunch() {
     isConfigured,
     address,
     factoryAddress,
+    chainId,
+    chainInfo,
     // Factory functions
     createFairLaunch,
     getPlatformFee,
