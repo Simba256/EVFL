@@ -28,7 +28,7 @@ import { updateCandleWithTrade } from '../../lib/db/price-history'
 import { refreshAllTokenMetrics } from './refresh-metrics'
 
 // Import health check server
-import { startHealthServer, markHealthy, markUnhealthy } from './health'
+import { startHealthServer, markHealthy, markUnhealthy, setPrismaClient } from './health'
 
 // Import Fair Launch indexer
 import {
@@ -575,6 +575,7 @@ async function runIndexer(): Promise<void> {
   // Start health check server
   // Railway sets PORT automatically, fall back to HEALTH_PORT or 8080
   const healthPort = parseInt(process.env.PORT || process.env.HEALTH_PORT || '8080')
+  setPrismaClient(prisma)
   startHealthServer(healthPort)
 
   // Load existing pools

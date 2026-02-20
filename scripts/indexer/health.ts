@@ -15,6 +15,18 @@ interface HealthStatus {
   lastError?: string
   lastErrorAt?: Date
   cycleCount: number
+  errorCount?: number
+  indexerErrors?: IndexerError[]
+}
+
+interface IndexerError {
+  contract: string
+  contractType: string
+  eventType: string
+  errorCount: number
+  lastError: string | null
+  lastIndexedBlock: string
+  lastIndexedAt: Date | null
 }
 
 // Shared state (updated by the indexer)
@@ -25,6 +37,13 @@ let healthStatus: HealthStatus = {
 }
 
 const startTime = Date.now()
+
+// Store reference to prisma client (set by indexer)
+let prismaClient: any = null
+
+export function setPrismaClient(prisma: any): void {
+  prismaClient = prisma
+}
 
 /**
  * Update the health status (called by the indexer)
@@ -62,14 +81,62 @@ export function markUnhealthy(error: string): void {
 }
 
 /**
+ * Get indexer errors from database
+ */
+async function getIndexerErrors(): Promise<IndexerError[]> {
+  if (!prismaClient) return []
+
+  try {
+    const errors = await prismaClient.indexerState.findMany({
+      where: {
+        OR: [
+          { errorCount: { gt: 0 } },
+          { lastError: { not: null } },
+        ],
+      },
+      select: {
+        contractAddress: true,
+        contractType: true,
+        eventType: true,
+        errorCount: true,
+        lastError: true,
+        lastIndexedBlock: true,
+        lastIndexedAt: true,
+      },
+      orderBy: {
+        errorCount: 'desc',
+      },
+      take: 10, // Show top 10 problematic indexers
+    })
+
+    return errors.map((e) => ({
+      contract: e.contractAddress,
+      contractType: e.contractType,
+      eventType: e.eventType,
+      errorCount: e.errorCount,
+      lastError: e.lastError,
+      lastIndexedBlock: e.lastIndexedBlock.toString(),
+      lastIndexedAt: e.lastIndexedAt,
+    }))
+  } catch (error) {
+    console.error('Error fetching indexer errors:', error)
+    return []
+  }
+}
+
+/**
  * Start the health check HTTP server
  */
 export function startHealthServer(port: number = 8080): void {
-  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     // Update uptime
     healthStatus.uptime = Math.floor((Date.now() - startTime) / 1000)
 
     if (req.url === '/health' || req.url === '/') {
+      // Fetch indexer errors from database
+      const indexerErrors = await getIndexerErrors()
+      const totalErrorCount = indexerErrors.reduce((sum, e) => sum + e.errorCount, 0)
+
       const statusCode = healthStatus.status === 'unhealthy' ? 503 : 200
 
       res.writeHead(statusCode, { 'Content-Type': 'application/json' })
@@ -78,6 +145,8 @@ export function startHealthServer(port: number = 8080): void {
           {
             ...healthStatus,
             lastBlock: healthStatus.lastBlock?.toString(),
+            errorCount: totalErrorCount,
+            indexerErrors: indexerErrors.length > 0 ? indexerErrors : undefined,
           },
           null,
           2
