@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Orbitron, Inter } from "next/font/google"
+import { Orbitron, Space_Grotesk } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { Web3Provider } from "./providers/web3-provider"
@@ -16,9 +16,10 @@ const orbitron = Orbitron({
   preload: true,
 })
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-body",
+  weight: ["300", "400", "500", "600", "700"],
   display: 'swap',
   preload: true,
 })
@@ -108,7 +109,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${orbitron.variable} ${inter.variable} font-sans antialiased`}>
+      <body className={`${orbitron.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         <Web3Provider>
           {children}
         </Web3Provider>

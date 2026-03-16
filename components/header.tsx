@@ -18,37 +18,22 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Link
-            href="/"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            Tokens
-          </Link>
-          <Link
-            href="/fair-launch"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            Fair Launch
-          </Link>
-          <Link
-            href="/launch"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            Launch
-          </Link>
-          <Link
-            href="/portfolio"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            Portfolio
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="text-sm font-medium text-foreground/90 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all"
-          >
-            Leaderboard
-          </Link>
+        <nav className="hidden md:flex items-center gap-8">
+          {[
+            { href: "/", label: "Tokens" },
+            { href: "/fair-launch", label: "Fair Launch" },
+            { href: "/launch", label: "Launch" },
+            { href: "/portfolio", label: "Portfolio" },
+            { href: "/leaderboard", label: "Leaderboard" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/70 hover:text-primary hover:drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] transition-all duration-300"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <WalletButton />
