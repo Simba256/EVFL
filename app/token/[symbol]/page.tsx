@@ -3,11 +3,12 @@ import { Header } from "@/components/header"
 import { TrendingTicker } from "@/components/trending-ticker"
 import { TokenTradingSection } from "@/components/token-trading-section"
 import { PriceChart } from "@/components/price-chart"
-import { ArrowLeft, TrendingUp, TrendingDown, Users, Activity, DollarSign, BarChart3, Clock, Award } from "lucide-react"
+import { TradeHistory } from "@/components/trade-history"
+import { ArrowLeft, TrendingUp, TrendingDown, Users, DollarSign, BarChart3, Clock, Award } from "lucide-react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
-import { getTokenBySymbol, getTopHolders, getRecentTrades } from "@/lib/data/tokens"
+import { getTokenBySymbol, getTopHolders } from "@/lib/data/tokens"
 import { formatPriceString } from "@/lib/utils/format"
 import { getTokenImage } from "@/lib/utils/placeholder-image"
 
@@ -57,10 +58,9 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
   const { symbol } = await params
 
   // Fetch token data and related information
-  const [token, topHolders, recentTrades] = await Promise.all([
+  const [token, topHolders] = await Promise.all([
     getTokenBySymbol(symbol),
     getTopHolders(symbol),
-    getRecentTrades(symbol),
   ])
 
   if (!token) {
@@ -160,45 +160,12 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
             />
 
             {/* Recent Trades */}
-            <Card className="border-glow-animated glass-morph p-6 mt-6 scanlines">
-              <h2
-                className="text-xl font-bold mb-4 flex items-center gap-2"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                <Activity className="h-5 w-5 text-primary" />
-                Recent Trades
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-primary/20">
-                      <th className="text-left py-3 text-sm text-muted-foreground font-semibold">Type</th>
-                      <th className="text-left py-3 text-sm text-muted-foreground font-semibold">Amount</th>
-                      <th className="text-left py-3 text-sm text-muted-foreground font-semibold">Price</th>
-                      <th className="text-left py-3 text-sm text-muted-foreground font-semibold">Trader</th>
-                      <th className="text-right py-3 text-sm text-muted-foreground font-semibold">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTrades.map((trade, i) => (
-                      <tr key={i} className="border-b border-primary/10 hover:bg-primary/5 transition-colors">
-                        <td className="py-3">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-bold ${trade.type === "buy" ? "bg-chart-2/20 text-chart-2" : "bg-destructive/20 text-destructive"}`}
-                          >
-                            {trade.type.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-3 font-mono text-sm">{trade.amount}</td>
-                        <td className="py-3 font-bold text-sm">{trade.price}</td>
-                        <td className="py-3 font-mono text-sm text-primary">{trade.trader}</td>
-                        <td className="py-3 text-right text-sm text-muted-foreground">{trade.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+            <div className="mt-6">
+              <TradeHistory
+                tokenAddress={token.symbol.replace("$", "").toLowerCase()}
+                tokenSymbol={token.symbol.replace("$", "")}
+              />
+            </div>
           </div>
 
           {/* Stats & Info Sidebar */}

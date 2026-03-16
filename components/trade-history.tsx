@@ -33,7 +33,7 @@ export function TradeHistory({ tokenAddress, tokenSymbol }: TradeHistoryProps) {
       setError("")
 
       try {
-        const res = await fetch(`/api/trades/${tokenAddress}?limit=20`)
+        const res = await fetch(`/api/trades/${tokenAddress}?limit=20&symbol=${encodeURIComponent(tokenSymbol)}`)
         const data = await res.json()
 
         if (data.error) {

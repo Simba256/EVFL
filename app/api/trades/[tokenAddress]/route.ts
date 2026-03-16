@@ -5,7 +5,7 @@ import {
   isDatabaseAvailable,
   useDatabaseEnabled,
 } from '@/lib/db'
-import { getRecentTrades } from '@/lib/data/tokens'
+import { generateMockTrades } from '@/lib/data/mock-trades'
 
 // Force dynamic to prevent build-time evaluation
 export const dynamic = 'force-dynamic'
@@ -18,17 +18,11 @@ export async function GET(
   try {
     const { tokenAddress } = await params
 
-    if (!tokenAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      return NextResponse.json(
-        { error: 'Invalid token address format' },
-        { status: 400 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
     const includeStats = searchParams.get('stats') === 'true'
+    const symbol = searchParams.get('symbol') || ''
 
     // Check database availability
     const dbEnabled = useDatabaseEnabled()
@@ -40,20 +34,23 @@ export async function GET(
         includeStats ? getTradeStats(tokenAddress) : null,
       ])
 
-      return NextResponse.json({
-        trades,
-        stats,
-        limit,
-        offset,
-        source: 'database',
-      })
+      if (trades.length > 0) {
+        return NextResponse.json({
+          trades,
+          stats,
+          limit,
+          offset,
+          source: 'database',
+        })
+      }
     }
 
-    // Fallback to mock data
-    const mockTrades = await getRecentTrades(tokenAddress)
+    // Fallback to generated mock trades
+    const tokenSymbol = symbol || tokenAddress.slice(2, 10)
+    const allMockTrades = generateMockTrades(tokenSymbol, 30)
 
     return NextResponse.json({
-      trades: mockTrades.slice(offset, offset + limit),
+      trades: allMockTrades.slice(offset, offset + limit),
       stats: null,
       limit,
       offset,
