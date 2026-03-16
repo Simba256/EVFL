@@ -149,7 +149,7 @@ export function PriceChart({ tokenAddress, tokenSymbol }: PriceChartProps) {
 
       try {
         const res = await fetch(
-          `/api/price-history/${tokenAddress}?interval=${interval}&limit=100`
+          `/api/price-history/${tokenAddress}?interval=${interval}&limit=100&symbol=${encodeURIComponent(tokenSymbol)}`
         )
         const data = await res.json()
 

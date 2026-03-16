@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Header } from "@/components/header"
 import { TrendingTicker } from "@/components/trending-ticker"
 import { TokenTradingSection } from "@/components/token-trading-section"
+import { PriceChart } from "@/components/price-chart"
 import { ArrowLeft, TrendingUp, TrendingDown, Users, Activity, DollarSign, BarChart3, Clock, Award } from "lucide-react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
@@ -153,27 +154,10 @@ export default async function TokenPage({ params }: { params: Promise<{ symbol: 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Chart Section */}
           <div className="lg:col-span-2">
-            <Card className="border-glow-animated glass-morph p-6 scanlines">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-                  Trading Chart
-                </h2>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 text-xs btn-metallic rounded">1H</button>
-                  <button className="px-3 py-1 text-xs btn-metallic-primary rounded">24H</button>
-                  <button className="px-3 py-1 text-xs btn-metallic rounded">7D</button>
-                  <button className="px-3 py-1 text-xs btn-metallic rounded">30D</button>
-                </div>
-              </div>
-
-              {/* DEX Chart Embed */}
-              <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-primary/20">
-                <iframe
-                  src="https://dexscreener.com/solana/8sLbNZoA1cfnvMJLPfp98ZLAnFSYCFApfJKMbiXNLwxj?embed=1&theme=dark&trades=0&info=0"
-                  className="w-full h-full"
-                />
-              </div>
-            </Card>
+            <PriceChart
+              tokenAddress={token.symbol.replace("$", "").toLowerCase()}
+              tokenSymbol={token.symbol.replace("$", "")}
+            />
 
             {/* Recent Trades */}
             <Card className="border-glow-animated glass-morph p-6 mt-6 scanlines">

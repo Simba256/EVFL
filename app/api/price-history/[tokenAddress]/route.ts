@@ -6,9 +6,15 @@ import {
   CANDLE_INTERVALS,
   type CandleInterval,
 } from '@/lib/db'
+import { generateMockCandles } from '@/lib/data/mock-candles'
 
 // Force dynamic to prevent build-time evaluation
 export const dynamic = 'force-dynamic'
+
+// Map known token addresses to symbols for mock data generation
+const KNOWN_TOKENS: Record<string, string> = {
+  // On-chain tokens (BSC Testnet) - will be resolved via DB when available
+}
 
 // GET /api/price-history/[tokenAddress] - Get price history (OHLCV candles)
 export async function GET(
@@ -18,16 +24,10 @@ export async function GET(
   try {
     const { tokenAddress } = await params
 
-    if (!tokenAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      return NextResponse.json(
-        { error: 'Invalid token address format' },
-        { status: 400 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const interval = (searchParams.get('interval') || '1h') as CandleInterval
     const limit = parseInt(searchParams.get('limit') || '100')
+    const symbol = searchParams.get('symbol') || ''
 
     // Validate interval parameter
     if (!CANDLE_INTERVALS[interval]) {
@@ -44,21 +44,27 @@ export async function GET(
     if (dbAvailable) {
       const candles = await getPriceHistoryByAddress(tokenAddress, interval, limit)
 
-      return NextResponse.json({
-        candles,
-        interval,
-        intervalSeconds: CANDLE_INTERVALS[interval],
-        source: 'database',
-      })
+      // If DB has candles, return them
+      if (candles.length > 0) {
+        return NextResponse.json({
+          candles,
+          interval,
+          intervalSeconds: CANDLE_INTERVALS[interval],
+          source: 'database',
+        })
+      }
     }
 
-    // No mock data for price history - return empty array
+    // Generate mock candles for demo/showcase
+    // Use symbol from query param, known mapping, or derive from address
+    const tokenSymbol = symbol || KNOWN_TOKENS[tokenAddress.toLowerCase()] || tokenAddress.slice(2, 10)
+    const mockCandles = generateMockCandles(tokenSymbol, interval, limit)
+
     return NextResponse.json({
-      candles: [],
+      candles: mockCandles,
       interval,
       intervalSeconds: CANDLE_INTERVALS[interval],
       source: 'mock',
-      message: 'Price history not available without database',
     })
   } catch (error) {
     console.error('Error fetching price history:', error)
