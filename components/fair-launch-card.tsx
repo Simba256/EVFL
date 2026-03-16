@@ -2,8 +2,10 @@
 
 import { Card } from "@/components/ui/card"
 import { Clock, Users, Target, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { formatEther } from "viem"
+import { getTokenImage } from "@/lib/utils/placeholder-image"
 
 export interface FairLaunchData {
   id: string
@@ -108,18 +110,13 @@ export function FairLaunchCard({ fairLaunch }: FairLaunchCardProps) {
       <Card className="border-glow-animated glass-morph backdrop-blur p-5 digital-corners hover:shadow-[0_0_30px_rgba(0,255,255,0.2)] transition-all duration-300 cursor-pointer group">
         {/* Header */}
         <div className="flex items-start gap-4 mb-4">
-          <div className="relative">
-            {fairLaunch.imageURI ? (
-              <img
-                src={fairLaunch.imageURI}
-                alt={fairLaunch.name}
-                className="w-14 h-14 rounded-lg object-cover ring-2 ring-primary/30"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-primary/20 flex items-center justify-center ring-2 ring-primary/30">
-                <span className="text-xl font-bold text-primary">{fairLaunch.symbol.slice(0, 2)}</span>
-              </div>
-            )}
+          <div className="relative w-14 h-14 rounded-lg overflow-hidden ring-2 ring-primary/30">
+            <Image
+              src={getTokenImage(fairLaunch.imageURI, fairLaunch.name)}
+              alt={fairLaunch.name}
+              fill
+              className="object-cover"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-foreground text-lg truncate group-hover:text-primary transition-colors">

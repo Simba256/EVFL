@@ -22,6 +22,8 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useFairLaunch, type ICOInfo } from "@/lib/blockchain/hooks/useFairLaunch"
 import { formatEther, parseEther, type Address } from "viem"
 import { toast } from "sonner"
+import Image from "next/image"
+import { getTokenImage } from "@/lib/utils/placeholder-image"
 
 interface FairLaunchData {
   id: string
@@ -315,18 +317,13 @@ export function FairLaunchDetail({ fairLaunch, commitments: initialCommitments }
       <Card className="border-glow-animated glass-morph p-6 md:p-8 digital-corners">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Image */}
-          <div className="flex-shrink-0">
-            {fairLaunch.imageURI ? (
-              <img
-                src={fairLaunch.imageURI}
-                alt={fairLaunch.name}
-                className="w-24 h-24 md:w-32 md:h-32 rounded-xl object-cover ring-4 ring-primary/30"
-              />
-            ) : (
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl bg-primary/20 flex items-center justify-center ring-4 ring-primary/30">
-                <span className="text-3xl font-bold text-primary">{fairLaunch.symbol.slice(0, 2)}</span>
-              </div>
-            )}
+          <div className="flex-shrink-0 relative w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden ring-4 ring-primary/30">
+            <Image
+              src={getTokenImage(fairLaunch.imageURI, fairLaunch.name)}
+              alt={fairLaunch.name}
+              fill
+              className="object-cover"
+            />
           </div>
 
           {/* Info */}
