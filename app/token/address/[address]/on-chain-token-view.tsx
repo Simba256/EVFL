@@ -7,7 +7,9 @@ import { PriceChart } from "@/components/price-chart"
 import { TradeHistory } from "@/components/trade-history"
 import { ArrowLeft, Users, BarChart3, Clock, ExternalLink, Loader2 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { formatEther } from "viem"
+import { getPlaceholderImage } from "@/lib/utils/placeholder-image"
 import { bscTestnetClient } from "@/lib/blockchain/client"
 import { TokenFactoryABI, WeightedPoolABI } from "@/lib/blockchain/abis"
 import { getContractAddresses } from "@/lib/blockchain/config/contracts"
@@ -201,8 +203,8 @@ export function OnChainTokenView({ tokenAddress }: OnChainTokenViewProps) {
       {/* Token Header */}
       <div className="border-glow-animated glass-morph p-6 rounded-xl mb-6 scanlines digital-corners">
         <div className="flex items-start gap-6 flex-wrap">
-          <div className="relative h-24 w-24 rounded-xl overflow-hidden border-2 border-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.3)] bg-primary/20 flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary">{tokenData.symbol.slice(0, 2)}</span>
+          <div className="relative h-24 w-24 rounded-xl overflow-hidden border-2 border-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.3)]">
+            <Image src={getPlaceholderImage(tokenData.name)} alt={tokenData.name} fill className="object-cover" />
           </div>
 
           <div className="flex-1 min-w-[300px]">

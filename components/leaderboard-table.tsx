@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Users, Activity } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
 import { formatSubscriptNumber, formatCompactCurrency } from "@/lib/utils/format"
+import { getTokenImage } from "@/lib/utils/placeholder-image"
 
 interface LeaderboardToken {
   rank: number
@@ -158,7 +159,7 @@ export function LeaderboardTable() {
                   {/* Token Info */}
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-12 rounded-lg overflow-hidden border border-border">
-                      <Image src={token.image || "/placeholder.svg"} alt={token.name} fill className="object-cover" />
+                      <Image src={getTokenImage(token.image, token.name)} alt={token.name} fill className="object-cover" />
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>

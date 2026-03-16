@@ -4,6 +4,7 @@ import type { Token } from "@/types"
 import Image from "next/image"
 import Link from "next/link"
 import { formatPriceString } from "@/lib/utils/format"
+import { getTokenImage } from "@/lib/utils/placeholder-image"
 
 interface TokenCardProps {
   token: Token
@@ -15,24 +16,18 @@ export function TokenCard({ token }: TokenCardProps) {
     ? `/token/address/${token.tokenAddress}`
     : `/token/${token.symbol.replace("$", "").toLowerCase()}`
 
+  const displayImage = getTokenImage(token.image, token.name)
+
   return (
     <Link href={tokenUrl}>
       <Card className="group overflow-hidden border-glow-animated glass-morph backdrop-blur transition-all hover:shadow-lg hover:shadow-primary/20 scanlines cursor-pointer">
         <div className="relative h-48 overflow-hidden bg-muted/30">
-          {token.image && !token.image.includes('placeholder') ? (
-            <Image
-              src={token.image}
-              alt={token.name}
-              fill
-              className="object-cover transition-transform group-hover:scale-110"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-              <span className="text-5xl font-black text-primary/50" style={{ fontFamily: "var(--font-heading)" }}>
-                {token.symbol.replace("$", "").slice(0, 3)}
-              </span>
-            </div>
-          )}
+          <Image
+            src={displayImage}
+            alt={token.name}
+            fill
+            className="object-cover transition-transform group-hover:scale-110"
+          />
           <div className="absolute top-3 left-3">
             {token.isOnChain && (
               <div className="flex items-center gap-1 rounded-full bg-chart-2/90 px-2 py-1 text-xs font-bold backdrop-blur border border-chart-2 shadow-[0_0_10px_rgba(0,255,100,0.5)]">
