@@ -24,10 +24,37 @@ RoboLaunch - A robotics-themed memecoin launchpad on BSC (testnet) with fair lau
 - [x] Upgrade nav links with uppercase HUD-style tracking (2026-03-18)
 
 ## Upcoming / Planned
+
+### Phase 1 — MVP Polish (Current)
 - [ ] Mobile responsive improvements (hamburger menu, touch-friendly)
 - [ ] Token stats formatting on detail page (raw numbers showing instead of formatted)
-- [ ] Real trading data integration when DB is fully connected
+- [ ] Fix hardcoded `testnet.bscscan.com` URLs — make dynamic via chain config (3 files)
 - [ ] OG image generation for social sharing
+
+### Phase 2 — Mainnet Launch
+- [ ] Deploy contracts to BSC Mainnet (56) — TokenFactory, FairLaunchFactory, PoolRegistry
+- [ ] Update contract addresses in config (or via env vars)
+- [ ] Replace `bscTestnetClient` with dynamic `getPublicClient(chainId)` (5 call sites)
+- [ ] Set up production database and indexer with mainnet start block
+- [ ] Configure WalletConnect project ID for production
+- [ ] Security audit of smart contracts before mainnet
+
+### Phase 3 — Multichain Expansion
+- [ ] Deploy contracts to Base (8453) — framework already scaffolded in chains.ts
+- [ ] Deploy contracts to Arbitrum (42161) — framework already scaffolded
+- [ ] Chain selector UI in header / wallet connection
+- [ ] Per-chain indexer instances and DB partitioning
+- [ ] Cross-chain token discovery and unified leaderboard
+- [ ] Chain-specific DEX router integration (PancakeSwap, Uniswap, SushiSwap)
+
+### Phase 4 — Growth & Features
+- [ ] Real-time WebSocket updates for trades and price charts
+- [ ] Token creator dashboard with analytics
+- [ ] Social features (comments, likes, watchlists)
+- [ ] Referral / affiliate system
+- [ ] Advanced trading (limit orders, slippage settings)
+- [ ] Governance voting for graduated tokens
+- [ ] API rate limiting and production hardening
 - [ ] Performance optimization (image lazy loading, bundle splitting)
 
 ## Blockers
@@ -45,3 +72,6 @@ RoboLaunch - A robotics-themed memecoin launchpad on BSC (testnet) with fair lau
 - On-chain tokens on BSC Testnet (chain ID 97)
 - 6 robotics placeholder images in /public/ for tokens without uploads
 - Mock candle generator uses seeded PRNG for deterministic output per token+interval
+- Multi-chain config already scaffolded in `lib/blockchain/config/chains.ts` for BSC, Base, Arbitrum
+- Contracts deployed on testnet: TokenFactory (`0x6F42...`), FairLaunchFactory (`0x821F...`), PoolRegistry (`0x785F...`)
+- Multi-chain expansion plan doc exists at `docs/MULTI_CHAIN_EXPANSION_PLAN.md`
